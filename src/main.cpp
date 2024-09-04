@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include "events.hpp"
 #include "config.hpp"
+#include "layout.hpp"
 
 
 const float cgravity = 9.81f;
@@ -149,59 +150,17 @@ public:
 };
 
 int main() {
-    // sf::ContextSettings settings;
-    // settings.antialiasingLevel = 16;
 
 
-
+    // For esthetic only
     sf::RenderWindow window = conf::createWindow();
+    sf::RectangleShape lowerRail, upperRail;
+    tie(lowerRail, upperRail) = createRail(530, 20, 250, 1350);
 
-
-    // For esthetic only
-    sf::RectangleShape lowerRail(sf::Vector2f(1550, 5));
-    lowerRail.setFillColor(sf::Color::White);
-    lowerRail.setPosition(150, 540);
-
-    sf::RectangleShape upperRail(sf::Vector2f(1550, 5));
-    upperRail.setFillColor(sf::Color::White);
-    upperRail.setPosition(150, 520);
-
-    const int pointCount = 50;   
-    float outerRadius = 12.5f;   
-    float innerRadius = 7.5f;   
-    sf::Vector2f rightCenter(1700, 532.5); 
-    sf::Vector2f leftCenter(150, 532.5); 
-
-    sf::VertexArray rightCircle(sf::TriangleStrip, (pointCount + 1) * 2);
-    sf::VertexArray leftCircle(sf::TriangleStrip, (pointCount + 1) * 2);
-
-    for (int i = 0; i <= pointCount; ++i) {
-        float angle = -M_PI / 2 + M_PI * i / pointCount;
-
-        float xOuter = rightCenter.x + std::cos(angle) * outerRadius;
-        float yOuter = rightCenter.y + std::sin(angle) * outerRadius;
-        rightCircle[i * 2].position = sf::Vector2f(xOuter, yOuter);
-        rightCircle[i * 2].color = sf::Color::White;
-
-        float xInner = rightCenter.x + std::cos(angle) * innerRadius;
-        float yInner = rightCenter.y + std::sin(angle) * innerRadius;
-        rightCircle[i * 2 + 1].position = sf::Vector2f(xInner, yInner);
-        rightCircle[i * 2 + 1].color = sf::Color::White;
-
-        angle = M_PI / 2 + M_PI * i / pointCount;
-        xOuter = leftCenter.x + std::cos(angle) * outerRadius;
-        yOuter = leftCenter.y + std::sin(angle) * outerRadius;
-        leftCircle[i * 2].position = sf::Vector2f(xOuter, yOuter);
-        leftCircle[i * 2].color = sf::Color::White;
-
-        xInner = leftCenter.x + std::cos(angle) * innerRadius;
-        yInner = leftCenter.y + std::sin(angle) * innerRadius;
-        leftCircle[i * 2 + 1].position = sf::Vector2f(xInner, yInner);
-        leftCircle[i * 2 + 1].color = sf::Color::White;
-    }
+    sf::VertexArray rightCircle, leftCircle;
+    tie(leftCircle, rightCircle) = cap(12.5f, 7.5f, std::make_tuple(925, 532.5), 1350);
     // For esthetic only
 
-    tuple<float, float> railBound = make_tuple(500, 1550);
 
     Rectangle cart(150, 50, 700, 505);
     float cartMass = 10;
