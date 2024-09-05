@@ -1,9 +1,5 @@
 #include "events.hpp"
-
-#define UP      1
-#define DOWN    2
-#define LEFT    3
-#define RIGHT   4
+#include "config.hpp"
 
 void processEvents(sf::RenderWindow& window, int& inputType){
     sf::Event event;
