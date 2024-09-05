@@ -1,8 +1,8 @@
-#include <SFML/Graphics.hpp>
 #include "events.hpp"
 #include "config.hpp"
 #include "layout.hpp"
 #include "obj.hpp"
+#include <cmath>
 
 
 void force(float& position, float& velocity, float acceleration, float t) {
@@ -28,40 +28,51 @@ int main() {
     // For esthetic only
 
 
-    Rectangle cart(150, 50, 700, 505);
+    Rectangle cart(150, 50);
     float cartMass = 10;
     float inputForce = 100;
-    float x, y;
-    float velocity = 0;
+    sf::Vector2f cartPosition = sf::Vector2f(800, 530);
+    float cartVel = 0;
+
+    float theta = 0;
+    float length = 300;
+    Circle pendulum(20);
+    sf::Vector2f pendulumPosition;
+    Circle point(5);
 
 
     int inputType;
     while (window.isOpen()) {
         processEvents(window, inputType);        
-        std::vector<sf::Vector2f> corners = cart.getCornerPositions();
 
-
-        std::tie(x, y) = cart.getPosition();            
+                 
         float a = (inputType == RIGHT)? inputForce / cartMass: (inputType == LEFT)? -inputForce / cartMass: 0;
-        force(x, velocity, a, conf::timeStep);
-        if (x + 700 / 2 <= std::get<0>(conf::railBound)){
-            velocity = 0;
-            x = std::get<0>(conf::railBound) - 700 / 2;
-        } else if (x + 700 / 2 >= std::get<1>(conf::railBound)){
-            velocity = 0;
-            x = std::get<1>(conf::railBound) - 700 / 2;
+        force(cartPosition.x, cartVel, a, conf::timeStep);
+        if (cartPosition.x<= std::get<0>(conf::railBound)){
+            cartVel = 0;
+            cartPosition.x = std::get<0>(conf::railBound);
+        } else if (cartPosition.x >= std::get<1>(conf::railBound)){
+            cartVel = 0;
+            cartPosition.x = std::get<1>(conf::railBound);
         }
-        cart.setPosition(x, y);
+        cart.setPosition(cartPosition);
+        sf::Vector2f cartPosition = cart.getPosition();
 
-        std::cout << x << " " << std::get<1>(conf::railBound) << "\n";
+        theta += 0.1 * conf::timeStep;
+        pendulumPosition.x = cartPosition.x - length * sinf(theta);
+        pendulumPosition.y = cartPosition.y - length * cosf(theta);
+        pendulum.setPosition(pendulumPosition);
 
 
+        point.setPosition(cartPosition);        
         window.clear(sf::Color(50, 50, 50));
         window.draw(cart);
         window.draw(upperRail);
         window.draw(lowerRail);
         window.draw(rightCircle);
         window.draw(leftCircle);
+        window.draw(pendulum);
+        window.draw(point);
         window.display();
     }
 

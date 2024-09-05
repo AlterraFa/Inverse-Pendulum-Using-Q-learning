@@ -11,7 +11,7 @@
 namespace conf {
     const float cgravity = 9.81f;
     const float timeStep = 0.005f;
-    const std::tuple<float, float> railBound = std::make_tuple(600, 1800);
+    const std::tuple<float, float> railBound = std::make_tuple(325, 1525);
     const std::tuple<int, int> boundary = std::make_tuple(1920, 1080);
     
     inline sf::ContextSettings getSettings() {

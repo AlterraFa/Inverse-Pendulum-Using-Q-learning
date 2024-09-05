@@ -1,18 +1,18 @@
 #include "obj.hpp"
 
 // Rectangle class
-Rectangle::Rectangle(float width, float height, float initX, float initY) {
+Rectangle::Rectangle(float width, float height) {
     shape.setSize(sf::Vector2f(width, height));
     shape.setFillColor(sf::Color::White);
-    shape.setPosition(initX, initY);
+    shape.setOrigin(shape.getSize().x / 2, shape.getSize().y / 2);
 }
 
 void Rectangle::draw(sf::RenderTarget& target, sf::RenderStates states) const {
     target.draw(shape, states);
 }
 
-void Rectangle::setPosition(float x, float y) {
-    shape.setPosition(x, y);
+void Rectangle::setPosition(sf::Vector2f position) {
+    shape.setPosition(position);
 }
 
 void Rectangle::setSize(float width, float height) {
@@ -23,8 +23,8 @@ void Rectangle::setRotation(float angle) {
     shape.setRotation(angle);
 }
 
-std::tuple<float, float> Rectangle::getPosition() {
-    return {shape.getPosition().x, shape.getPosition().y};
+sf::Vector2f Rectangle::getPosition() {
+    return sf::Vector2f(shape.getPosition().x, shape.getPosition().y);
 }
 
 std::vector<sf::Vector2f> Rectangle::getCornerPositions() {
@@ -39,23 +39,24 @@ std::vector<sf::Vector2f> Rectangle::getCornerPositions() {
 
 
 
+
 // Circle class
-Circle::Circle(int radius, int initX, int initY) : radius(radius), shape(radius) {
+Circle::Circle(float radius) : radius(radius), shape(radius) {
     shape.setPointCount(200);
     shape.setFillColor(sf::Color(232, 109, 80));
-    shape.setPosition(initX, initY);
+    shape.setOrigin(radius, radius);
 }
 
 void Circle::draw(sf::RenderTarget& target, sf::RenderStates states) const {
     target.draw(shape, states);
 }
 
-void Circle::setPosition(float x, float y) {
-    shape.setPosition(x, y);
+void Circle::setPosition(sf::Vector2f position) {
+    shape.setPosition(position);
 }
 
-std::tuple<int, int> Circle::getPosition() {
-    return {static_cast<int>(shape.getPosition().x), static_cast<int>(shape.getPosition().y)};
+std::tuple<float, float> Circle::getPosition() {
+    return std::make_tuple(shape.getPosition().x, shape.getPosition().y);
 }
 
 

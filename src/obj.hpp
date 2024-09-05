@@ -15,11 +15,11 @@ class Rectangle : public sf::Drawable {
         // Override the draw method from sf::Drawable to define how this object is drawn
         virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
     public:
-        Rectangle(float width, float height, float initX, float initY);
-        void setPosition(float x, float y);
+        Rectangle(float width, float height);
+        void setPosition(sf::Vector2f position);
         void setSize(float width, float height);
         void setRotation(float angle);
-        std::tuple<float, float> getPosition();
+        sf::Vector2f getPosition();
         std::vector<sf::Vector2f> getCornerPositions();
 };
 
@@ -31,9 +31,9 @@ class Circle : public sf::Drawable{
 
         virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
     public:
-        Circle(int radius, int initX, int initY);
-        void setPosition(float x, float y);
-        std::tuple<int, int> getPosition();  
+        Circle(float radius);
+        void setPosition(sf::Vector2f position);
+        std::tuple<float, float> getPosition();  
 };
 
 class Logger {
