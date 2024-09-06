@@ -5,15 +5,29 @@
 #include <cmath>
 
 
-void force(float& position, float& velocity, float acceleration, float t) {
-    velocity += acceleration * t;
-    position += velocity * t;
+std::vector<float> funct(std::vector<float> x, float accel){
+    float xdot = x[1];
+    float xddot = accel;
+    return {xdot, xddot};
 }
 
-void resetPosition(float& positionX, float& positionY, std::tuple<int, int> boundary){
-    positionX = (positionX >= std::get<0>(boundary))? 0: positionX;
-    positionY = (positionY >= std::get<1>(boundary))? 0: positionY;
+void forceRungeKutta(std::vector<float>& x, float accel, float timeStep){
+    std::vector<float> f1 = funct(x, accel);
+
+    std::vector<float> x2 = {x[0] + timeStep * f1[0] * .5f, x[1] + timeStep * f1[1] * .5f};
+    std::vector<float> f2 = funct(x2, accel);
+
+    std::vector<float> x3 = {x[0] + timeStep * f2[0] * .5f, x[1] + timeStep * f2[1] * .5f};
+    std::vector<float> f3 = funct(x3, accel);
+
+    std::vector<float> x4 = {x[0] + timeStep * f3[0], x[1] + timeStep * f3[1]};
+    std::vector<float> f4 = funct(x4, accel);
+
+    std::cout << f1[1] << " " << f2[1] << " " << f3[1] << " " << f4[1] << '\n';
+    x[0] += (1.f/6.f) * timeStep * (f1[0] + 2 * f2[0] + 2 * f3[0] + f4[0]);
+    x[1] += (1.f/6.f) * timeStep * (f1[1] + 2 * f2[1] + 2 * f3[1] + f4[1]);
 }
+
 
 int main() {
 
@@ -47,7 +61,13 @@ int main() {
 
                  
         float a = (inputType == RIGHT)? inputForce / cartMass: (inputType == LEFT)? -inputForce / cartMass: 0;
-        force(cartPosition.x, cartVel, a, conf::timeStep);
+        std::vector<float> x = {cartPosition.x, cartVel};
+        forceRungeKutta(x, a, conf::timeStep);
+
+        
+        cartPosition.x = x[0];
+        cartVel = x[1];
+
         if (cartPosition.x<= std::get<0>(conf::railBound)){
             cartVel = 0;
             cartPosition.x = std::get<0>(conf::railBound);
