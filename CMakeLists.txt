@@ -14,11 +14,11 @@ FetchContent_Declare(SFML
 FetchContent_MakeAvailable(SFML)
 
 add_executable(main 
-        # src/main.cpp
+        src/main.cpp
         src/events.cpp
         src/layout.cpp
         src/obj.cpp
-        src/test.cpp
+        # src/test.cpp
         )
 target_link_libraries(main PRIVATE sfml-graphics)
 target_compile_features(main PRIVATE cxx_std_11)

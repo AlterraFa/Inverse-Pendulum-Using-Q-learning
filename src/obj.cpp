@@ -68,9 +68,10 @@ std::tuple<float, float> Circle::getPosition() {
 
 //------------------------------------------ Border class --------------------------------------------------------//
 Border::Border(sf::Vector2f position, sf::Vector2f size, float thickness, sf::Color color, float chamferRad)
-    : position(position), size(size), thickness(thickness), color(color), radius(chamferRad) {
+    : position(position), size(size), thickness(thickness), color(color), radius(chamferRad), needsUpdate(true) {
     lines.setPrimitiveType(sf::Quads);
     lines.resize(16);
+    renderTextureCreated = false;
     updateLines();
 }
 
@@ -85,20 +86,36 @@ void Border::overrideColor(sf::Color color){
 }
 
 void Border::draw(sf::RenderTarget& target, sf::RenderStates state) const{
-    // Create a render texture with anti-aliasing settings
-    sf::RenderTexture renderTexture;
-    sf::ContextSettings settings;
-    settings.antialiasingLevel = 16; // Adjust anti-aliasing level as needed
-    renderTexture.create(target.getSize().x, target.getSize().y, settings);
-    
-    renderTexture.clear(sf::Color::Transparent);
-    renderTexture.draw(lines, state);
-    renderTexture.draw(corners, state);
-    renderTexture.display();
+    if (!renderTextureCreated) {
+        // Create the render texture once
+        sf::ContextSettings settings;
+        settings.antialiasingLevel = 16; // Reduced anti-aliasing level
+        renderTexture.create(target.getSize().x, target.getSize().y, settings);
+        renderTextureCreated = true;
+        needsUpdate = true;
+    }
+
+    if (needsUpdate) {
+        renderTexture.clear(sf::Color::Transparent);
+
+        // Create a rectangle shape to fill the inner region with the specific color
+        sf::RectangleShape innerRect(size);
+        innerRect.setPosition(position);
+
+        // Replace the following line with the exact color value extracted from your image
+        innerRect.setFillColor(sf::Color(34, 34, 34)); // Example color, replace with your actual color value
+
+        renderTexture.draw(innerRect); // Draw the inner filled rectangle
+
+        renderTexture.draw(lines, state);
+        renderTexture.draw(corners, state);
+        renderTexture.display();
+        needsUpdate = false;
+    }
 
     // Draw the texture as a sprite onto the main target
     sf::Sprite sprite(renderTexture.getTexture());
-    target.draw(sprite);
+    target.draw(sprite, state);
 }
 
 void Border::updateLines() {

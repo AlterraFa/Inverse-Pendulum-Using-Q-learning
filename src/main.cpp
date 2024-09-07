@@ -55,10 +55,12 @@ signed main() {
     // For esthetic only
     sf::RenderWindow window = conf::createWindow();
     sf::RectangleShape lowerRail, upperRail;
-    std::tie(lowerRail, upperRail) = createRail(530, 20, 250, 1350);
+    std::tie(lowerRail, upperRail) = createRail(290, 20, 290, 1270);
 
     sf::VertexArray rightCircle, leftCircle;
-    std::tie(leftCircle, rightCircle) = cap(12.5f, 7.5f, std::make_tuple(925, 532.5), 1350);
+    std::tie(leftCircle, rightCircle) = cap(12.5f, 7.5f, std::make_tuple(925, 292.5), 1270);
+
+    Border border(sf::Vector2f(100, 50), sf::Vector2f(1650, 500), 10.5f, sf::Color(232, 109, 80), 5.f);
     // For esthetic only
 
     float inputForce = 350;
@@ -66,7 +68,7 @@ signed main() {
     Rectangle cart(150, 20);
     float cartMass = 50;
     float cartVel = 0;
-    cart.setPosition(sf::Vector2f(900, 530));
+    cart.setPosition(sf::Vector2f(900, 290));
 
 
     Circle pendulum(20);
@@ -126,6 +128,7 @@ signed main() {
 
 
         window.clear(sf::Color(50, 50, 50));
+        window.draw(border);
         window.draw(cart);
         window.draw(upperRail);
         window.draw(lowerRail);

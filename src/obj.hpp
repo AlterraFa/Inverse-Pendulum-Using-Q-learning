@@ -47,6 +47,9 @@ class Border : public sf::Drawable{
         sf::Color color;
         sf::VertexArray lines;
         sf::VertexArray corners;
+        mutable sf::RenderTexture renderTexture;
+        mutable bool renderTextureCreated;
+        mutable bool needsUpdate;
 
         virtual void draw(sf::RenderTarget& target, sf::RenderStates state) const override;
         void updateLines();
