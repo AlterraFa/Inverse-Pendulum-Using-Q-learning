@@ -18,6 +18,7 @@ add_executable(main
         src/events.cpp
         src/layout.cpp
         src/obj.cpp
+        src/physics.cpp
         # src/test.cpp
         )
 target_link_libraries(main PRIVATE sfml-graphics)

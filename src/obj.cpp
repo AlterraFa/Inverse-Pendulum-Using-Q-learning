@@ -158,7 +158,7 @@ void Border::appendArc(const sf::VertexArray& arc) {
 }
 
 sf::VertexArray Border::createArc(float startAngle, float angleLength, float radius, sf::Vector2f center, float thickness) {
-    int points = 50;
+    int points = 20;
     sf::VertexArray arc(sf::TriangleStrip, (points + 1) * 2);
 
     float startRad = startAngle * M_PI / 180;
