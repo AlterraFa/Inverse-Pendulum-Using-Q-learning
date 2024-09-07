@@ -48,6 +48,7 @@ void stateUpdate(std::vector<float>& x, float M, float m, float length, float fo
 }
 
 
+
 signed main() {
 
 
@@ -68,14 +69,18 @@ signed main() {
     cart.setPosition(sf::Vector2f(900, 530));
 
 
-
-    Circle pendulum(30);
+    Circle pendulum(20);
+    Circle pendulumRim(23);
+    pendulumRim.overrideColor(sf::Color::White);
     float pendulumMass = 10.5;
     float angularVel = 0;
     float theta = M_PI;
-    float length = 300;
+    float length = 200;
     
-    Circle pivot(15);  
+    Circle pivot(20);
+    Circle pivotRim(23);
+    pivotRim.overrideColor(sf::Color::White);
+
     Rectangle rod(length, 6); 
 
     sf::Vector2f newCartPos = cart.getPosition(), newPendulumPos, newRodPos;
@@ -85,7 +90,7 @@ signed main() {
 
         float force = (inputType == RIGHT && !(newCartPos.x >= std::get<1>(conf::railBound)))? inputForce: (inputType == LEFT && !(newCartPos.x <= std::get<0>(conf::railBound)))? -inputForce: 0;
         float friction = -((cartVel > 0) - (cartVel < 0)) * 5;
-        float angularFriction = -((angularVel > 0) - (angularVel < 0)) * .075;
+        float angularFriction = -((angularVel > 0) - (angularVel < 0)) * .095;
 
         std::vector<float> stateVar = {cart.getPosition().x, cartVel, theta, angularVel};
         stateUpdate(stateVar, cartMass, pendulumMass, length, force + friction, angularFriction, conf::timeStep);
@@ -114,6 +119,8 @@ signed main() {
         cart.setPosition(newCartPos);        
         pendulum.setPosition(newPendulumPos);
         pivot.setPosition(newCartPos);
+        pendulumRim.setPosition(newPendulumPos);
+        pivotRim.setPosition(newCartPos);
         rod.setPosition(newRodPos);
         rod.setRotation(-theta * 180 / M_PI + 90);
 
@@ -125,7 +132,9 @@ signed main() {
         window.draw(rightCircle);
         window.draw(leftCircle);
         window.draw(rod);
+        window.draw(pendulumRim);
         window.draw(pendulum);
+        window.draw(pivotRim);
         window.draw(pivot);
         window.display();
     }
