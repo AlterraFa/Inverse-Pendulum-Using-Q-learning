@@ -4,6 +4,7 @@
 #include "obj.hpp"
 #include "physics.hpp"
 #include <cmath>
+#include <algorithm>
 
 
 signed main() {
@@ -18,10 +19,10 @@ signed main() {
     std::tie(leftCircle, rightCircle) = cap(12.5f, 7.5f, std::make_tuple(925, 292.5), 1270);
 
     Border pendulumbBorder(sf::Vector2f(100, 50), sf::Vector2f(1650, 500), 10.5f, sf::Color(232, 109, 80), 15.f);
-    Border velGraphBorder(sf::Vector2f(100, 600), sf::Vector2f(800, 200), 7.5f, sf::Color(232, 109, 80));
+    Border velGraphBorder(sf::Vector2f(100, 650), sf::Vector2f(600, 300), 5.f, sf::Color(219, 192, 118), 12.5f);
     // For esthetic only
 
-    float inputForce = 350;
+    float inputForce = 1050;
 
     Rectangle cart(150, 20);
     float cartMass = 50;
@@ -43,9 +44,12 @@ signed main() {
 
     Rectangle rod(length, 6); 
 
-
     sf::Vector2f newCartPos, newPendulumPos, newRodPos;
+    std::vector<float> cartVelHistoryX, cartVelHistoryY, temp;
+    uint histSize = 2000;
+
     int inputType;
+    size_t iteration = 0;
     while (window.isOpen()) {
         processEvents(window, inputType);        
 
@@ -76,6 +80,41 @@ signed main() {
         newRodPos.x = (newCartPos.x + newPendulumPos.x) / 2;
         newRodPos.y = (newCartPos.y + newPendulumPos.y) / 2;
 
+        // Logging
+        auto addVelocity = [&cartVelHistoryX, &cartVelHistoryY, &temp, histSize](float newVelocity, size_t index) {
+            float xPos = 150.0f + (float(index) / histSize) * 500.0f;  // X position scaled to fit the graph width
+            float yPos = 800 - (newVelocity * 2.f);  // Scale velocity to fit graph height (adjust scaling as needed)
+
+            if (cartVelHistoryX.size() >= histSize) {
+                temp.erase(temp.begin());
+            }
+            else cartVelHistoryX.push_back(xPos);
+            temp.push_back(yPos);
+            cartVelHistoryY = temp;
+
+            auto maxIt = std::max_element(cartVelHistoryY.begin(), cartVelHistoryY.end());
+            float maxVal = *maxIt;
+            auto minIt = std::min_element(cartVelHistoryY.begin(), cartVelHistoryY.end());
+            float minVal = *minIt;
+            
+            if(minVal <= 700 || maxVal >= 900){
+                float maxBound = 900;
+                float minBound = 700;
+                std::transform(cartVelHistoryY.begin(), cartVelHistoryY.end(), cartVelHistoryY.begin(),
+                               [maxVal, minVal, minBound, maxBound](float position) {return minBound + ((position - minVal) * (maxBound - minBound)) / (maxVal - minVal);});
+            }
+        };
+
+        if (iteration % 2 == 0) addVelocity(cartVel, cartVelHistoryY.size());
+        iteration++;
+        if (iteration > 1) iteration = 0;
+
+        sf::VertexArray graph(sf::LineStrip, cartVelHistoryY.size());
+        for (int i = 0; i < cartVelHistoryY.size(); i++){
+            graph[i].position = sf::Vector2f(cartVelHistoryX[i], cartVelHistoryY[i]);
+            graph[i].color = sf::Color(219, 192, 118);
+        }        
+
         // Update position
         cart.setPosition(newCartPos);        
         pendulum.setPosition(newPendulumPos);
@@ -99,6 +138,7 @@ signed main() {
         window.draw(pendulum);
         window.draw(pivotRim);
         window.draw(pivot);
+        window.draw(graph);
         window.display();
     }
 
