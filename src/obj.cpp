@@ -181,9 +181,191 @@ sf::VertexArray Border::createArc(float startAngle, float angleLength, float rad
 }
 
 
+//------------------------------------------ Graphing class --------------------------------------------------------//
+Graphing::Graphing(size_t histSize, const sf::Font &f, std::vector<sf::Vector2f> graphBound, float scale, size_t maxVerticalLine, float barSpace, float textSize)
+                   : graph(sf::LineStrip), font(f), graphBound(graphBound), graphScale(scale), horizontalBar(sf::Lines), verticalBar(sf::Lines),
+                     maxLine(maxVerticalLine), lineCount(1), prevLineCount(0), maxLineBorder(graphBound[1].x), moveLine(0.0f), textSize(textSize),
+                     midLine((graphBound[0].y + graphBound[1].y) / 2), barSpace(barSpace), startTime(std::chrono::high_resolution_clock::now()){
+    timer.push_back(0.0f);
+    initHistory(histSize, graphBound);
+};
+void Graphing::update(int newVelocity, int windowSize) {
+    addVelocity(newVelocity, windowSize, graphScale);
+    createHorizontalBars();
+    createVerticalBars();
+
+    graph.clear();
+    for (size_t i = 0; i < yHistory.size(); i++) {
+        graph.append(sf::Vertex(sf::Vector2f(xHistory[i], yHistory[i]), sf::Color(219, 192, 118)));
+    }
+}
+void Graphing::draw(sf::RenderTarget &target, sf::RenderStates states) const {
+    target.draw(graph, states);
+    target.draw(horizontalBar, states);
+    target.draw(verticalBar, states);
+
+    for (const auto &text : texts) {
+        target.draw(text, states);
+    }
+    for (const auto &time : timerString) {
+        target.draw(time, states);
+    }
+}
+void Graphing::createVerticalBars() {
+    timerString.clear();
+    verticalBar.clear();
+
+    if (lineCount <= maxLine - 1) {
+        maxLineBorder -= 0.25f;
+    }
+    
+    if (lineCount != prevLineCount){
+
+        auto endTime = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+        timer.push_back(std::round(duration.count() / 100.f) / 10);
+
+        prevLineCount = lineCount;
+    }
+
+    if (maxLineBorder <= lineCount * (graphBound[1].x - graphBound[0].x) / (lineCount + 1) + graphBound[0].x) {
+        lineCount++;
+        maxLineBorder = graphBound[1].x;
+    }
+
+    lineCount = std::min(lineCount, static_cast<size_t>(maxLine));
+
+    if (lineCount == maxLine) {
+        float maxMove = (maxLineBorder - graphBound[0].x) / lineCount;
+        moveLine = (moveLine >= maxMove) ? 0 : moveLine + 0.125f;
+    }
+
+    
+    float lineStep = (maxLineBorder - graphBound[0].x) / lineCount;
+    int iter = 0;
+    std::vector<float> positions;
+    for (float i = graphBound[0].x; i <= maxLineBorder; i += lineStep) {
+        float position = i - moveLine;
+        if (position >= graphBound[0].x) {
+
+            sf::Text text;
+            text.setFont(font);
+            std::ostringstream oss;
+            oss << std::fixed << std::setprecision(1) << timer[iter];
+            
+            text.setString(oss.str());
+            text.setCharacterSize(textSize);
+            text.setFillColor(sf::Color::White);
+            text.setPosition(position - 7, graphBound[1].y);
+            timerString.push_back(text);
+
+            verticalBar.append(sf::Vertex(sf::Vector2f(position, graphBound[0].y), sf::Color(180, 180, 180, 100)));
+            verticalBar.append(sf::Vertex(sf::Vector2f(position, graphBound[1].y), sf::Color(180, 180, 180, 100)));
+        }
+        iter++;
+        positions.push_back(position);
+    }
+    if (lineCount == maxLine && positions[1] <= graphBound[0].x){
+        auto endTime = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+        timer.erase(timer.begin());
+        timer.push_back(std::round(duration.count() / 100.f) / 10);
+    }
+}
+void Graphing::createHorizontalBars() {
+    texts.clear();
+    horizontalBar.clear();
+    std::vector<float> horBarPos, magnitude;
+
+    for (float i = midLine; i >= ((minVal <= graphBound[0].y)? midLine - round((midLine - minVal) / barSpace) * barSpace: graphBound[0].y); i -= barSpace){
+        horBarPos.push_back(i);
+        magnitude.push_back((midLine - i) / graphScale);
+    }
+    for (float i = midLine; i <= ((maxVal >= graphBound[1].y)? midLine + round((maxVal - midLine) / barSpace) * barSpace: graphBound[1].y); i += barSpace){
+        horBarPos.push_back(i);
+        magnitude.push_back((midLine - i) / graphScale);
+    }
+    
+    if (minVal <= graphBound[0].y || maxVal >= graphBound[1].y){
+        float maxBound = graphBound[1].y;
+        float minBound = graphBound[0].y;
+        std::transform(horBarPos.begin(), horBarPos.end(), horBarPos.begin(),
+                        [this, minBound, maxBound](float position) {return minBound + ((position - minVal) * (maxBound - minBound)) / (maxVal - minVal);});
+    }
+
+    for (int i = 0; i < horBarPos.size(); i++){
+        if (horBarPos[i] > graphBound[0].y && horBarPos[i] < graphBound[1].y){
+            sf::Text text;
+            text.setFont(font);
+            text.setString(std::to_string(int(magnitude[i])));
+            text.setCharacterSize(textSize);
+            text.setFillColor(sf::Color::White);
+            text.setPosition(graphBound[1].x + 5, horBarPos[i] - 7);
+            texts.push_back(text);
+            horizontalBar.append(sf::Vertex(sf::Vector2f(graphBound[0].x, horBarPos[i]), sf::Color(180, 180, 180, 100)));
+            horizontalBar.append(sf::Vertex(sf::Vector2f(graphBound[1].x, horBarPos[i]), sf::Color(180, 180, 180, 100)));
+            horizontalBar[0].position.x;
+        }
+    }    
+}
+
+void Graphing::addVelocity(int newVelocity, int windowSize, float scaleFactor) {
+    temp.erase(temp.begin());
+    float yPos = midLine - (newVelocity * scaleFactor);
+    temp.push_back(yPos);
+    yHistory = temp;
+    smoothGraph(temp, windowSize);
 
 
+    auto maxIt = std::max_element(yHistory.begin(), yHistory.end());
+    maxVal = *maxIt;
+    auto minIt = std::min_element(yHistory.begin(), yHistory.end());
+    minVal = *minIt;
 
+    if (minVal <= graphBound[0].y || maxVal >= graphBound[1].y) {
+        float maxBound = graphBound[1].y;
+        float minBound = graphBound[0].y;
+        std::transform(yHistory.begin(), yHistory.end(), yHistory.begin(),
+                    [this, minBound, maxBound](float position) {
+                        return minBound + ((position - minVal) * (maxBound - minBound)) / (maxVal - minVal);
+                    });
+    }
+}
+
+void Graphing::smoothGraph(std::vector<float>& data, size_t windowSize) {
+    if (data.size() < windowSize) return;
+
+    std::vector<float> smoothedData;
+    size_t halfWindow = windowSize / 2;
+
+    // Apply the moving average filter
+    for (size_t i = 0; i < data.size(); i++) {
+        float sum = 0.0f;
+        size_t count = 0;
+
+        for (size_t j = i > halfWindow ? i - halfWindow : 0; 
+            j <= i + halfWindow && j < data.size(); 
+            j++) {
+            sum += data[j];
+            count++;
+        }
+
+        smoothedData.push_back(sum / count);
+    }
+
+    data = smoothedData;
+}
+
+void Graphing::initHistory(size_t histSize, std::vector<sf::Vector2f> graphBound){
+    xHistory.resize(histSize);
+    yHistory.resize(histSize, midLine);
+    temp.resize(histSize, midLine);
+    std::iota(xHistory.begin(), xHistory.end(), 0);
+    std::transform(xHistory.begin(), yHistory.end(), xHistory.begin(),
+                    [=](size_t index){
+                        return graphBound[0].x + (static_cast<float>(index) / static_cast<float>(histSize)) * (graphBound[1].x - graphBound[0].x);
+                    });
+}
 
 //------------------------------------------ Logging class --------------------------------------------------------//
 Logger::Logger(const std::string& filename){
