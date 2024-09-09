@@ -46,7 +46,7 @@ signed main() {
     sf::Vector2f newCartPos, newPendulumPos, newRodPos;
 
 
-    uint histSize = 4000, windowSize = 2;
+    size_t histSize = 4000, windowSize = 2;
     std::vector<sf::Vector2f> graphBound = {sf::Vector2f(150, 700), sf::Vector2f(650, 900)};
 
     sf::Font font;

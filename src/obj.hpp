@@ -57,6 +57,7 @@ class Border : public sf::Drawable{
         mutable bool needsUpdate;
 
         virtual void draw(sf::RenderTarget& target, sf::RenderStates state) const override;
+        void drawToTexture();
         void updateLines();
         void setQuad(int index, sf::Vector2f start, sf::Vector2f end, float thickness);
         void updateCorners();   
@@ -83,13 +84,13 @@ class Graphing : public sf::Drawable {
         float maxLineBorder, moveLine, barSpace, textSize;
         std::chrono::high_resolution_clock::time_point startTime;
 
-        void initHistory(size_t histSize, std::vector<sf::Vector2f> graphBound);
+        void initHistory(size_t histSize);
         void smoothGraph(std::vector<float>& data, size_t windowSize);
         void addVelocity(int newVelocity, int windowSize, float scaleFactor);
         void createHorizontalBars();void createVerticalBars();
         void draw(sf::RenderTarget &target, sf::RenderStates states) const override;
     public:
-        Graphing(size_t histSize, const sf::Font &f, std::vector<sf::Vector2f> graphBound, float scale, size_t maxVerticalLine = 9, float barSpace = 40.f, float textSize = 12.0f);
+        Graphing(size_t histSize, const sf::Font& f, std::vector<sf::Vector2f> graphBound, float scale, size_t maxVerticalLine = 9, float barSpace = 40.f, float textSize = 12.0f);
         void update(int newVelocity, int windowSize);
 };
 

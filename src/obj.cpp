@@ -1,4 +1,5 @@
 #include "obj.hpp"
+#include "config.hpp"
 
 //------------------------------------------ Rectangle class --------------------------------------------------------//
 Rectangle::Rectangle(float width, float height) {
@@ -72,7 +73,24 @@ Border::Border(sf::Vector2f position, sf::Vector2f size, float thickness, sf::Co
     lines.setPrimitiveType(sf::Quads);
     lines.resize(16);
     renderTextureCreated = false;
+
+    if (!renderTexture.create(size.x + thickness, size.y + thickness)) {
+        std::cerr << "Failed to create render texture" << std::endl;
+    }
+
     updateLines();
+    drawToTexture();
+}
+
+void Border::drawToTexture() {
+    renderTexture.clear(sf::Color::Transparent);
+
+    // Draw the border lines and corners to the render texture
+    renderTexture.draw(lines);
+    renderTexture.draw(corners);
+    renderTexture.display();
+
+    needsUpdate = false; // Mark update as done
 }
 
 void Border::overrideColor(sf::Color color){
@@ -87,9 +105,7 @@ void Border::overrideColor(sf::Color color){
 
 void Border::draw(sf::RenderTarget& target, sf::RenderStates state) const{
     if (!renderTextureCreated) {
-        // Create the render texture once
-        sf::ContextSettings settings;
-        settings.antialiasingLevel = 16; // Reduced anti-aliasing level
+        sf::ContextSettings settings = conf::getSettings();
         renderTexture.create(target.getSize().x, target.getSize().y, settings);
         renderTextureCreated = true;
         needsUpdate = true;
@@ -98,14 +114,12 @@ void Border::draw(sf::RenderTarget& target, sf::RenderStates state) const{
     if (needsUpdate) {
         renderTexture.clear(sf::Color::Transparent);
 
-        // Create a rectangle shape to fill the inner region with the specific color
         sf::RectangleShape innerRect(size);
         innerRect.setPosition(position);
 
-        // Replace the following line with the exact color value extracted from your image
-        innerRect.setFillColor(sf::Color(34, 34, 34)); // Example color, replace with your actual color value
+        innerRect.setFillColor(sf::Color(34, 34, 34)); 
 
-        renderTexture.draw(innerRect); // Draw the inner filled rectangle
+        renderTexture.draw(innerRect);
 
         renderTexture.draw(lines, state);
         renderTexture.draw(corners, state);
@@ -113,7 +127,6 @@ void Border::draw(sf::RenderTarget& target, sf::RenderStates state) const{
         needsUpdate = false;
     }
 
-    // Draw the texture as a sprite onto the main target
     sf::Sprite sprite(renderTexture.getTexture());
     target.draw(sprite, state);
 }
@@ -124,6 +137,7 @@ void Border::updateLines() {
     setQuad(8, sf::Vector2f(position.x + size.x - radius, position.y + size.y), sf::Vector2f(position.x + radius, position.y + size.y), thickness);
     setQuad(12, sf::Vector2f(position.x, position.y + size.y - radius), sf::Vector2f(position.x, position.y + radius), thickness);
     updateCorners();
+    needsUpdate = true;
 }
 
 void Border::setQuad(int index, sf::Vector2f start, sf::Vector2f end, float thickness) {
@@ -158,7 +172,7 @@ void Border::appendArc(const sf::VertexArray& arc) {
 }
 
 sf::VertexArray Border::createArc(float startAngle, float angleLength, float radius, sf::Vector2f center, float thickness) {
-    int points = 20;
+    int points = 5;
     sf::VertexArray arc(sf::TriangleStrip, (points + 1) * 2);
 
     float startRad = startAngle * M_PI / 180;
@@ -184,10 +198,17 @@ sf::VertexArray Border::createArc(float startAngle, float angleLength, float rad
 //------------------------------------------ Graphing class --------------------------------------------------------//
 Graphing::Graphing(size_t histSize, const sf::Font &f, std::vector<sf::Vector2f> graphBound, float scale, size_t maxVerticalLine, float barSpace, float textSize)
                    : graph(sf::LineStrip), font(f), graphBound(graphBound), graphScale(scale), horizontalBar(sf::Lines), verticalBar(sf::Lines),
-                     maxLine(maxVerticalLine), lineCount(1), prevLineCount(0), maxLineBorder(graphBound[1].x), moveLine(0.0f), textSize(textSize),
-                     midLine((graphBound[0].y + graphBound[1].y) / 2), barSpace(barSpace), startTime(std::chrono::high_resolution_clock::now()){
+                     maxLine(maxVerticalLine), lineCount(1), prevLineCount(0), moveLine(0.0f), textSize(textSize),
+                     barSpace(barSpace), startTime(std::chrono::high_resolution_clock::now()){
+
+    maxLineBorder = this->graphBound[1].x;
+    midLine = (this->graphBound[0].y + this->graphBound[1].y) / 2;
+    xHistory.assign(histSize, 0.0f);
+    yHistory.assign(histSize, midLine);
+    temp.assign(histSize, midLine);
+
     timer.push_back(0.0f);
-    initHistory(histSize, graphBound);
+    initHistory(histSize);
 };
 void Graphing::update(int newVelocity, int windowSize) {
     addVelocity(newVelocity, windowSize, graphScale);
@@ -356,12 +377,9 @@ void Graphing::smoothGraph(std::vector<float>& data, size_t windowSize) {
     data = smoothedData;
 }
 
-void Graphing::initHistory(size_t histSize, std::vector<sf::Vector2f> graphBound){
-    xHistory.resize(histSize);
-    yHistory.resize(histSize, midLine);
-    temp.resize(histSize, midLine);
+void Graphing::initHistory(size_t histSize){
     std::iota(xHistory.begin(), xHistory.end(), 0);
-    std::transform(xHistory.begin(), yHistory.end(), xHistory.begin(),
+    std::transform(xHistory.begin(), xHistory.end(), xHistory.begin(),
                     [=](size_t index){
                         return graphBound[0].x + (static_cast<float>(index) / static_cast<float>(histSize)) * (graphBound[1].x - graphBound[0].x);
                     });
