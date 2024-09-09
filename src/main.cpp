@@ -3,6 +3,7 @@
 #include "layout.hpp"
 #include "obj.hpp"
 #include "physics.hpp"
+#include <pybind11/pybind11.h>
 
 
 signed main() {
@@ -65,10 +66,11 @@ signed main() {
 
         float force = (inputType == RIGHT && !(newCartPos.x >= std::get<1>(conf::railBound)))? inputForce: (inputType == LEFT && !(newCartPos.x <= std::get<0>(conf::railBound)))? -inputForce: 0;
         float friction = -((cartVel > 0) - (cartVel < 0)) * 5;
-        float angularFriction = -((angularVel > 0) - (angularVel < 0)) * .1;
+        float angularFriction = -((angularVel > 0) - (angularVel < 0)) * .005;
+        float forceOnPendulum = (inputType == UP)? -30: (inputType == DOWN)? 30: 0;
 
         Eigen::Vector4f stateVar = {cart.getPosition().x, cartVel, theta, angularVel};
-        stateUpdate(stateVar, cartMass, pendulumMass, length, force + friction, angularFriction, conf::timeStep);
+        stateUpdate(stateVar, cartMass, pendulumMass, length, force + friction, angularFriction + forceOnPendulum, conf::timeStep);
 
         newCartPos = sf::Vector2f(stateVar[0], cart.getPosition().y);
         cartVel = stateVar[1];
@@ -79,11 +81,11 @@ signed main() {
 
         // Collision with rail bound
         if (newCartPos.x <= std::get<0>(conf::railBound)){
-            cartVel = 0;
+            cartVel = -cartVel * .01;
             newCartPos.x = std::get<0>(conf::railBound);
         }
         else if (newCartPos.x >= std::get<1>(conf::railBound)){
-            cartVel = 0;
+            cartVel = -cartVel * .01;
             newCartPos.x = std::get<1>(conf::railBound);
         }
 
