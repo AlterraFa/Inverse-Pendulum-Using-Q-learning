@@ -18,6 +18,7 @@ signed main() {
 
     Border pendulumbBorder(sf::Vector2f(100, 50), sf::Vector2f(1650, 500), 10.5f, sf::Color(232, 109, 80), 15.f);
     Border velGraphBorder(sf::Vector2f(100, 650), sf::Vector2f(600, 300), 5.f, sf::Color(219, 192, 118), 12.5f);
+    Border angularGraphBorder(sf::Vector2f(750, 650), sf::Vector2f(600, 300), 5.f, sf::Color(219, 192, 118), 12.5f);
     // For esthetic only
 
     int inputType;
@@ -47,7 +48,8 @@ signed main() {
 
 
     size_t histSize = 4000, windowSize = 2;
-    std::vector<sf::Vector2f> graphBound = {sf::Vector2f(150, 700), sf::Vector2f(650, 900)};
+    std::vector<sf::Vector2f> cartGraphBound = {sf::Vector2f(150, 700), sf::Vector2f(650, 900)};
+    std::vector<sf::Vector2f> pendulumGraphBound = {sf::Vector2f(800, 700), sf::Vector2f(1300, 900)};
 
     sf::Font font;
     if (!font.loadFromFile("/usr/share/fonts/JetBrainsMonoNerdFont-Light.ttf")) {
@@ -55,7 +57,8 @@ signed main() {
         return -21321432;
     }
 
-    Graphing grapher(histSize, font, graphBound, 2.0f);
+    Graphing cartGrapher(histSize, font, cartGraphBound, 2.0f);
+    Graphing pendulumGrapher(histSize, font, pendulumGraphBound, 2.0f);
 
     while (window.isOpen()) {
         processEvents(window, inputType);        
@@ -87,7 +90,9 @@ signed main() {
         newRodPos.x = (newCartPos.x + newPendulumPos.x) / 2;
         newRodPos.y = (newCartPos.y + newPendulumPos.y) / 2;
 
-        grapher.update(cartVel, 2);
+        cartGrapher.update(cartVel, 2);
+        pendulumGrapher.update(angularVel * 180 / M_PI, 2);
+
          
 
 
@@ -103,6 +108,7 @@ signed main() {
         window.clear(sf::Color(50, 50, 50));
         window.draw(velGraphBorder);
         window.draw(pendulumbBorder);
+        window.draw(angularGraphBorder);
         window.draw(cart);
         window.draw(upperRail);
         window.draw(lowerRail);
@@ -113,7 +119,8 @@ signed main() {
         window.draw(pendulum);
         window.draw(pivotRim);
         window.draw(pivot);
-        window.draw(grapher);
+        window.draw(cartGrapher);
+        window.draw(pendulumGrapher);
         window.display();
     }
 
