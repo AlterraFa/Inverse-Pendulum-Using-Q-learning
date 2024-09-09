@@ -70,36 +70,28 @@ std::tuple<float, float> Circle::getPosition() {
 //------------------------------------------ Border class --------------------------------------------------------//
 Border::Border(sf::Vector2f position, sf::Vector2f size, float thickness, sf::Color color, float chamferRad)
     : position(position), size(size), thickness(thickness), color(color), radius(chamferRad), needsUpdate(true) {
-    lines.setPrimitiveType(sf::Quads);
-    lines.resize(16);
+    border.setPrimitiveType(sf::TrianglesStrip);
+    background1.setPrimitiveType(sf::TriangleFan);
+    background2.setPrimitiveType(sf::TriangleFan);
+    background3.setPrimitiveType(sf::TriangleFan);
+    background4.setPrimitiveType(sf::TriangleFan);
     renderTextureCreated = false;
 
     if (!renderTexture.create(size.x + thickness, size.y + thickness)) {
         std::cerr << "Failed to create render texture" << std::endl;
     }
-
-    updateLines();
+    updateBackground();
+    updateBorder();
     drawToTexture();
 }
 
 void Border::drawToTexture() {
-    renderTexture.clear(sf::Color::Transparent);
-
-    // Draw the border lines and corners to the render texture
-    renderTexture.draw(lines);
-    renderTexture.draw(corners);
-    renderTexture.display();
-
-    needsUpdate = false; // Mark update as done
+    needsUpdate = false;
 }
 
 void Border::overrideColor(sf::Color color){
-    for (size_t i = 0; i < lines.getVertexCount(); i++){
-        lines[i].color = color;
-    }
-
-    for (size_t i = 0; i < corners.getVertexCount(); i++){
-        corners[i].color = color;
+    for (size_t i = 0; i < border.getVertexCount(); i++){
+        border[i].color = color;
     }
 }
 
@@ -114,15 +106,11 @@ void Border::draw(sf::RenderTarget& target, sf::RenderStates state) const{
     if (needsUpdate) {
         renderTexture.clear(sf::Color::Transparent);
 
-        sf::RectangleShape innerRect(size);
-        innerRect.setPosition(position);
-
-        innerRect.setFillColor(sf::Color(34, 34, 34)); 
-
-        renderTexture.draw(innerRect);
-
-        renderTexture.draw(lines, state);
-        renderTexture.draw(corners, state);
+        renderTexture.draw(background1, state);
+        renderTexture.draw(background2, state);
+        renderTexture.draw(background3, state);
+        renderTexture.draw(background4, state);
+        renderTexture.draw(border, state);
         renderTexture.display();
         needsUpdate = false;
     }
@@ -131,49 +119,62 @@ void Border::draw(sf::RenderTarget& target, sf::RenderStates state) const{
     target.draw(sprite, state);
 }
 
-void Border::updateLines() {
-    setQuad(0, sf::Vector2f(position.x + radius, position.y), sf::Vector2f(position.x + size.x - radius, position.y), thickness);
-    setQuad(4, sf::Vector2f(position.x + size.x, position.y + radius), sf::Vector2f(position.x + size.x, position.y + size.y - radius), thickness);
-    setQuad(8, sf::Vector2f(position.x + size.x - radius, position.y + size.y), sf::Vector2f(position.x + radius, position.y + size.y), thickness);
-    setQuad(12, sf::Vector2f(position.x, position.y + size.y - radius), sf::Vector2f(position.x, position.y + radius), thickness);
-    updateCorners();
-    needsUpdate = true;
-}
 
-void Border::setQuad(int index, sf::Vector2f start, sf::Vector2f end, float thickness) {
-    sf::Vector2f direction = end - start;
-    float length = std::sqrt(direction.x * direction.x + direction.y * direction.y);
-    direction /= length;
-    sf::Vector2f offset(-direction.y * thickness / 2, direction.x * thickness / 2);
-
-    lines[index].position = start + offset;
-    lines[index + 1].position = start - offset;
-    lines[index + 2].position = end - offset;
-    lines[index + 3].position = end + offset;
-
-    for (int i = 0; i < 4; ++i) {
-        lines[index + i].color = color;
+void Border::append(sf::VertexArray& to, sf::VertexArray item){
+    for (size_t i = 0; i < item.getVertexCount(); ++i) {
+        to.append(item[i]);
     }
 }
 
-void Border::updateCorners() {
-    corners.clear();
-    corners.setPrimitiveType(sf::TrianglesStrip);
-    appendArc(createArc(180.0f, 90.0f, radius, sf::Vector2f(position.x + radius, position.y + radius), thickness));
-    appendArc(createArc(270.0f, 90.0f, radius, sf::Vector2f(position.x + size.x - radius, position.y + radius), thickness));
-    appendArc(createArc(0.0f, 90.0f, radius, sf::Vector2f(position.x + size.x - radius, position.y + size.y - radius), thickness));
-    appendArc(createArc(90.0f, 90.0f, radius, sf::Vector2f(position.x + radius, position.y + size.y - radius), thickness));
+void Border::updateBackground(){
+    append(background1, createQuarterCircle(180.0f, 270.0f, radius, sf::Vector2f(position.x + radius, position.y + radius), sf::Color(34, 34, 34)));
+    append(background1, createQuarterCircle(.0f, -90.f, radius, sf::Vector2f(position.x + size.x - radius, position.y + radius), sf::Color(34, 34, 34)));
+    append(background1, createQuarterCircle(90.0f, 0.0f, radius, sf::Vector2f(position.x + size.x - radius, position.y + size.y - radius), sf::Color(34, 34, 34)));
+    append(background1, createQuarterCircle(180.f, 90.0f, radius, sf::Vector2f(position.x + radius, position.y + size.y - radius), sf::Color(34, 34, 34)));
+
+    append(background2, createQuarterCircle(-90.f, 0.f, radius, sf::Vector2f(position.x + size.x - radius, position.y + radius), sf::Color(34, 34, 34)));
+    append(background2, createQuarterCircle(90.0f, 0.0f, radius, sf::Vector2f(position.x + size.x - radius, position.y + size.y - radius), sf::Color(34, 34, 34)));
+
+    append(background3, createQuarterCircle(0.0f, 90.0f, radius, sf::Vector2f(position.x + size.x - radius, position.y + size.y - radius), sf::Color(34, 34, 34)));
+    append(background3, createQuarterCircle(180.f, 90.0f, radius, sf::Vector2f(position.x + radius, position.y + size.y - radius), sf::Color(34, 34, 34)));
+
+    append(background4, createQuarterCircle(90.f, 180.0f, radius, sf::Vector2f(position.x + radius, position.y + size.y - radius), sf::Color(34, 34, 34)));
+    append(background4, createQuarterCircle(180.0f, 270.0f, radius, sf::Vector2f(position.x + radius, position.y + radius), sf::Color(34, 34, 34)));
 }
 
-void Border::appendArc(const sf::VertexArray& arc) {
-    for (size_t i = 0; i < arc.getVertexCount(); ++i) {
-        corners.append(arc[i]);
+void Border::updateBorder(){
+    append(border, createArc(180.0f, 90.0f, radius, sf::Vector2f(position.x + radius, position.y + radius), thickness, 20));
+    append(border, createArc(270.0f, 90.0f, radius, sf::Vector2f(position.x + size.x - radius, position.y + radius), thickness, 20));
+    append(border, createArc(0.0f, 90.0f, radius, sf::Vector2f(position.x + size.x - radius, position.y + size.y - radius), thickness, 20));
+    append(border, createArc(90.0f, 90.0f, radius, sf::Vector2f(position.x + radius, position.y + size.y - radius), thickness, 20));
+    append(border, createArc(180.0f, 90.0f, radius, sf::Vector2f(position.x + radius, position.y + radius), thickness, 20));
+}
+
+sf::VertexArray Border::createQuarterCircle(float startAngle, float endAngle, float radius, sf::Vector2f center, sf::Color color, int points) {
+    sf::VertexArray arc(sf::TriangleFan, points + 2);
+
+    arc[0].position = center;
+    arc[0].color = color;
+
+    float startRad = startAngle * M_PI / 180;
+    float endRad = endAngle * M_PI / 180;
+    float angleStep = (endRad - startRad) / points;
+
+    for (int i = 0; i <= points; ++i) {
+        float angle = startRad + i * angleStep; 
+        float x = center.x + std::cos(angle) * radius;
+        float y = center.y + std::sin(angle) * radius;
+
+        arc[i + 1].position = sf::Vector2f(x, y);
+        arc[i + 1].color = color;                
     }
+
+    return arc;
 }
 
-sf::VertexArray Border::createArc(float startAngle, float angleLength, float radius, sf::Vector2f center, float thickness) {
-    int points = 5;
-    sf::VertexArray arc(sf::TriangleStrip, (points + 1) * 2);
+
+sf::VertexArray Border::createArc(float startAngle, float angleLength, float radius, sf::Vector2f center, float thickness, int points) {
+    sf::VertexArray arc(sf::TrianglesStrip, (points + 1) * 2);
 
     float startRad = startAngle * M_PI / 180;
     float endRad = (startAngle + angleLength) * M_PI / 180;

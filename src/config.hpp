@@ -10,13 +10,13 @@
 
 namespace conf {
     const float cgravity = 9.81f;
-    const float timeStep = .015f;
+    const float timeStep = .02f;
     const std::tuple<float, float> railBound = std::make_tuple(365, 1485);
     const std::tuple<int, int> boundary = std::make_tuple(1920, 1080);
     
     inline sf::ContextSettings getSettings() {
         sf::ContextSettings settings;
-        settings.antialiasingLevel = 10;
+        settings.antialiasingLevel = 8;
         settings.majorVersion = 4;
         settings.minorVersion = 6;
         return settings;

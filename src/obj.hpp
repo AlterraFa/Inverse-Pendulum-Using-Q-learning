@@ -50,19 +50,18 @@ class Border : public sf::Drawable{
         float thickness;
         float radius;
         sf::Color color;
-        sf::VertexArray lines;
-        sf::VertexArray corners;
+        sf::VertexArray border, background1, background2, background3, background4;
         mutable sf::RenderTexture renderTexture;
         mutable bool renderTextureCreated;
         mutable bool needsUpdate;
 
         virtual void draw(sf::RenderTarget& target, sf::RenderStates state) const override;
         void drawToTexture();
-        void updateLines();
-        void setQuad(int index, sf::Vector2f start, sf::Vector2f end, float thickness);
-        void updateCorners();   
-        void appendArc(const sf::VertexArray& arc);
-        sf::VertexArray createArc(float startAngle, float angleLength, float radius, sf::Vector2f center, float thickness);
+        void updateBackground();
+        void append(sf::VertexArray& to, sf::VertexArray item);
+        void updateBorder();   
+        sf::VertexArray createQuarterCircle(float startAngle, float endAngle, float radius, sf::Vector2f center, sf::Color color, int points = 20);
+        sf::VertexArray createArc(float startAngle, float angleLength, float radius, sf::Vector2f center, float thickness, int points = 20);
 
     public:
         Border(sf::Vector2f position, sf::Vector2f size, float thickness, sf::Color color = sf::Color(232, 109, 80), float chamferRad = 10.0f);
