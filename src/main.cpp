@@ -2,15 +2,13 @@
 #include "config.hpp"
 #include "layout.hpp"
 #include "obj.hpp"
-#include "physics.hpp"
-#include <pybind11/pybind11.h>
 
 
 signed main() {
 
 
     // For esthetic only
-    sf::RenderWindow window = conf::createWindow();
+    sf::RenderWindow window = conf::createWindow(conf::getSettings());
     sf::RectangleShape lowerRail, upperRail;
     std::tie(lowerRail, upperRail) = createRail(290, 20, 290, 1270);
 
@@ -23,29 +21,19 @@ signed main() {
     // For esthetic only
 
     int inputType;
-    float inputForce = 350;
+    float cartForce = 350, pendulumForce = 30;
 
-    Rectangle cart(150, 20);
     float cartMass = 50;
-    float cartVel = 0;
-    cart.setPosition(sf::Vector2f(900, 290));
-
-
-    Circle pendulum(20);
-    Circle pendulumRim(23);
-    pendulumRim.overrideColor(sf::Color::White);
     float pendulumMass = 10.5;
     float angularVel = 0;
     float theta = M_PI;
-    float length = 200;
-    
-    Circle pivot(20);
-    Circle pivotRim(23);
-    pivotRim.overrideColor(sf::Color::White);
+    float armLength = 200;
+    float cartLinearVelocity, pendulumAngularVelocity;
+    sf::Vector2f cartPosition(900, 290);
+    Pendulum pendulum(cartMass, pendulumMass, armLength, cartPosition);
 
-    Rectangle rod(length, 6); 
-
-    sf::Vector2f newCartPos, newPendulumPos, newRodPos;
+    Rectangle test(150, 20);
+    test.setPosition(cartPosition);
 
 
     size_t histSize = 4000, windowSize = 2;
@@ -62,65 +50,30 @@ signed main() {
     Graphing pendulumGrapher(histSize, font, pendulumGraphBound, 2.0f);
 
     while (window.isOpen()) {
-        processEvents(window, inputType);        
+        processEvents(window, inputType);  
 
-        float force = (inputType == RIGHT && !(newCartPos.x >= std::get<1>(conf::railBound)))? inputForce: (inputType == LEFT && !(newCartPos.x <= std::get<0>(conf::railBound)))? -inputForce: 0;
-        float friction = -((cartVel > 0) - (cartVel < 0)) * 5;
-        float angularFriction = -((angularVel > 0) - (angularVel < 0)) * .005;
-        float forceOnPendulum = (inputType == UP)? -30: (inputType == DOWN)? 30: 0;
+        std::cout << inputType << "\n";      
 
-        Eigen::Vector4f stateVar = {cart.getPosition().x, cartVel, theta, angularVel};
-        stateUpdate(stateVar, cartMass, pendulumMass, length, force + friction, angularFriction + forceOnPendulum, conf::timeStep);
-
-        newCartPos = sf::Vector2f(stateVar[0], cart.getPosition().y);
-        cartVel = stateVar[1];
-        theta = stateVar[2];
-        angularVel = stateVar[3];
-        newPendulumPos = sf::Vector2f(newCartPos.x - length * sinf(theta), newCartPos.y - length * cosf(theta));
+        std::tie(cartPosition, cartLinearVelocity, pendulumAngularVelocity) = pendulum.stateUpdate(cartForce, 
+                                                                                                   pendulumForce,  
+                                                                                                   conf::timeStep,
+                                                                                                   inputType, conf::railBound);
 
 
-        // Collision with rail bound
-        if (newCartPos.x <= std::get<0>(conf::railBound)){
-            cartVel = -cartVel * .01;
-            newCartPos.x = std::get<0>(conf::railBound);
-        }
-        else if (newCartPos.x >= std::get<1>(conf::railBound)){
-            cartVel = -cartVel * .01;
-            newCartPos.x = std::get<1>(conf::railBound);
-        }
-
-        newRodPos.x = (newCartPos.x + newPendulumPos.x) / 2;
-        newRodPos.y = (newCartPos.y + newPendulumPos.y) / 2;
-
-        cartGrapher.update(cartVel, 2);
-        pendulumGrapher.update(angularVel * 180 / M_PI, 2);
-
-         
+        cartGrapher.update(cartLinearVelocity, 2);
+        pendulumGrapher.update(pendulumAngularVelocity * 180 / M_PI, 2);
 
 
-        // Update position
-        cart.setPosition(newCartPos);        
-        pendulum.setPosition(newPendulumPos);
-        pivot.setPosition(newCartPos);
-        pendulumRim.setPosition(newPendulumPos);
-        pivotRim.setPosition(newCartPos);
-        rod.setPosition(newRodPos);
-        rod.setRotation(-theta * 180 / M_PI + 90);
 
         window.clear(sf::Color(50, 50, 50));
         window.draw(velGraphBorder);
         window.draw(pendulumbBorder);
         window.draw(angularGraphBorder);
-        window.draw(cart);
         window.draw(upperRail);
         window.draw(lowerRail);
+        window.draw(pendulum);
         window.draw(rightCircle);
         window.draw(leftCircle);
-        window.draw(rod);
-        window.draw(pendulumRim);
-        window.draw(pendulum);
-        window.draw(pivotRim);
-        window.draw(pivot);
         window.draw(cartGrapher);
         window.draw(pendulumGrapher);
         window.display();

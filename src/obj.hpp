@@ -10,18 +10,20 @@
 #include <chrono>
 #include <iomanip>
 #include <sstream>
+#include <eigen3/Eigen/Dense>
+#include "config.hpp"
 
 #ifndef Shapes_HPP
 #define Shapes_HPP
 
 class Rectangle : public sf::Drawable {
     private:
-        sf::RectangleShape shape;  // The rectangle shape object
-
-        // Override the draw method from sf::Drawable to define how this object is drawn
-        virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
+        sf::RectangleShape shape;
+        void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
     public:
+        Rectangle();
         Rectangle(float width, float height);
+        void overrideColor(sf::Color color);
         void setPosition(sf::Vector2f position);
         void setSize(float width, float height);
         void setRotation(float angle);
@@ -32,15 +34,39 @@ class Rectangle : public sf::Drawable {
 
 class Circle : public sf::Drawable{
     private:
-        int radius;
         sf::CircleShape shape;
 
         virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
     public:
+        Circle();
         Circle(float radius);
         void setPosition(sf::Vector2f position);
         void overrideColor(sf::Color color);
+        void setRadius(float radius);
         std::tuple<float, float> getPosition();  
+};
+
+
+
+class Pendulum : public sf::Drawable{
+    private:
+        float cartMass, pendulumMass;
+        float cartLinearVelocity, pendulumAngularVelocity;
+        float pendulumAttitude;
+        sf::Vector2f cartPosition, pendulumPosition, rodPosition;
+        float armLength;
+
+        Rectangle cart, rod;
+        Circle pendulum, pendulumRim, pivot, pivotRim;
+
+        Eigen::Vector4f funct(Eigen::Vector4f x, float force, float forceS);
+        virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
+    public:
+        Pendulum(float cartMass, float pendulumMass, float armLength, sf::Vector2f cartPosition, float pendulumAttitude = M_PI);
+        void dimension(sf::Vector2f cartDimension = sf::Vector2f(150, 20), float pendulumRadius = 20, float pivotRadius = 20, float rodThickness = 6);
+        std::tuple<sf::Vector2f, float, float> stateUpdate(float cartForce, float pendulumForce, float timeStep, int inputType, 
+                                                           sf::Vector2f railBound = static_cast<sf::Vector2f>(conf::createWindow(conf::getSettings()).getSize()),
+                                                           float slidingFriction = 5, float angularFriction = .005);
 };
 
 class Border : public sf::Drawable{
@@ -65,7 +91,8 @@ class Border : public sf::Drawable{
 
     public:
         Border(sf::Vector2f position, sf::Vector2f size, float thickness, sf::Color color = sf::Color(232, 109, 80), float chamferRad = 10.0f);
-        void overrideColor(sf::Color color);
+        void overrideBorderColor(sf::Color color);
+        void overrideBackgroundColor(sf::Color color);
 };
 
 

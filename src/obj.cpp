@@ -1,9 +1,12 @@
 #include "obj.hpp"
-#include "config.hpp"
 
 //------------------------------------------ Rectangle class --------------------------------------------------------//
-Rectangle::Rectangle(float width, float height) {
-    shape.setSize(sf::Vector2f(width, height));
+Rectangle::Rectangle() : shape(sf::Vector2f(0, 0)) {
+    shape.setFillColor(sf::Color::White);
+}
+
+// Constructor with width and height
+Rectangle::Rectangle(float width, float height) : shape(sf::Vector2f(width, height)) {
     shape.setFillColor(sf::Color::White);
     shape.setOrigin(shape.getSize().x / 2, shape.getSize().y / 2);
 }
@@ -13,7 +16,12 @@ void Rectangle::draw(sf::RenderTarget& target, sf::RenderStates states) const {
 }
 
 void Rectangle::setPosition(sf::Vector2f position) {
+    shape.setOrigin(shape.getSize().x / 2, shape.getSize().y / 2);
     shape.setPosition(position);
+}
+
+void Rectangle::overrideColor(sf::Color color){
+    shape.setFillColor(color);
 }
 
 void Rectangle::setSize(float width, float height) {
@@ -42,7 +50,13 @@ std::vector<sf::Vector2f> Rectangle::getCornerPositions() {
 
 
 //------------------------------------------ Circle class --------------------------------------------------------//
-Circle::Circle(float radius) : radius(radius), shape(radius) {
+
+Circle::Circle() : shape(0) {
+    shape.setPointCount(200);
+    shape.setFillColor(sf::Color(232, 109, 80));
+}
+
+Circle::Circle(float radius) : shape(radius) {
     shape.setPointCount(200);
     shape.setFillColor(sf::Color(232, 109, 80));
     shape.setOrigin(radius, radius);
@@ -53,7 +67,12 @@ void Circle::draw(sf::RenderTarget& target, sf::RenderStates states) const {
 }
 
 void Circle::setPosition(sf::Vector2f position) {
+    shape.setOrigin(shape.getRadius(), shape.getRadius());
     shape.setPosition(position);
+}
+
+void Circle::setRadius(float radius) {
+    shape.setRadius(radius);
 }
 
 void Circle::overrideColor(sf::Color color){
@@ -63,6 +82,128 @@ void Circle::overrideColor(sf::Color color){
 std::tuple<float, float> Circle::getPosition() {
     return std::make_tuple(shape.getPosition().x, shape.getPosition().y);
 }
+
+
+
+//------------------------------------------ Pendulum class --------------------------------------------------------//
+
+Pendulum::Pendulum(float cartMass, float pendulumMass, float armLength, sf::Vector2f cartPosition, float pendulumAttitude)
+                   : cartMass(cartMass), pendulumMass(pendulumMass), cartLinearVelocity(0), pendulumAngularVelocity(0),
+                   armLength(armLength), cartPosition(cartPosition), pendulumAttitude(pendulumAttitude)
+{
+    pendulumPosition = sf::Vector2f(cartPosition.x - armLength * sinf(pendulumAttitude), cartPosition.y - armLength * cosf(pendulumAttitude));
+    rodPosition = sf::Vector2f((cartPosition.x + pendulumPosition.x) / 2, (cartPosition.y + pendulumPosition.y) / 2);
+    
+    dimension();
+    cart.setPosition( this -> cartPosition);
+    pendulum.setPosition(pendulumPosition);
+    pendulumRim.setPosition(pendulumPosition);
+    rod.setPosition(rodPosition);
+    pivot.setPosition( this -> cartPosition);
+    pivotRim.setPosition( this -> cartPosition);
+    rod.setRotation((pendulumAttitude * 180 / M_PI) + 90);
+
+
+    pendulumRim.overrideColor(sf::Color::White);
+    pivotRim.overrideColor(sf::Color::White);
+}
+
+void Pendulum::dimension(sf::Vector2f cartDimension, float pendulumRadius, float pivotRadius, float rodThickness){
+    // Permitted overriding dimension
+    cart.setSize(cartDimension.x, cartDimension.y);
+    pendulum.setRadius(pendulumRadius);
+    pendulumRim.setRadius(pendulumRadius + 4);
+    pivot.setRadius(pivotRadius);
+    pivotRim.setRadius(pivotRadius + 4);
+    rod.setSize(armLength, rodThickness);
+
+
+}
+
+std::tuple<sf::Vector2f, float, float> Pendulum::stateUpdate(float cartForce, float pendulumForce, float timeStep, int inputType, 
+                                                             sf::Vector2f railBound,
+                                                             float slidingFriction, float angularFriction){
+
+    float forceOnCart = (inputType == RIGHT && !(cartPosition.x >= conf::railBound.y))? cartForce: (inputType == LEFT && !(cartPosition.x <= conf::railBound.x))? -cartForce: 0;
+    float forceOnPendulum = (inputType == UP)? -pendulumForce: (inputType == DOWN)? pendulumForce: 0;
+    slidingFriction = -((cartLinearVelocity > 0) - (cartLinearVelocity < 0)) * slidingFriction;
+    angularFriction = -((pendulumAngularVelocity > 0) - (pendulumAngularVelocity < 0)) * angularFriction;
+
+    float totalForceOnCart = forceOnCart + slidingFriction;
+    float totalForceOnPendulum = angularFriction + forceOnPendulum;
+
+
+    Eigen::Vector4f x1 = {cartPosition.x, cartLinearVelocity, pendulumAttitude, pendulumAngularVelocity};
+
+    Eigen::Vector4f f1 = funct(x1, totalForceOnCart, totalForceOnPendulum);
+
+    Eigen::Vector4f x2 = x1 + f1 * timeStep * .5f;
+    Eigen::Vector4f f2 = funct(x2, totalForceOnCart, totalForceOnPendulum);
+
+    Eigen::Vector4f x3 = x1 + f2 * timeStep * .5f;
+    Eigen::Vector4f f3 = funct(x3, totalForceOnCart, totalForceOnPendulum);
+
+    Eigen::Vector4f x4 = x1 + f3 * timeStep;
+    Eigen::Vector4f f4 = funct(x4, totalForceOnCart, totalForceOnPendulum);
+
+    x1 += (1.f / 6.f) * timeStep * (f1 + 2 * f2 + 2 * f3 + f4);
+    cartPosition.x = x1[0];
+    cartLinearVelocity = x1[1];
+    pendulumAttitude = x1[2];
+    pendulumAngularVelocity = x1[3];
+
+    if (cartPosition.x <= railBound.x){
+        cartLinearVelocity = -cartLinearVelocity * .01;
+        cartPosition.x = railBound.x;
+    }
+    else if (cartPosition.x >= railBound.y){
+        cartLinearVelocity = -cartLinearVelocity * .01;
+        cartPosition.x = railBound.y;
+    }
+
+    pendulumPosition = sf::Vector2f(cartPosition.x - armLength * sinf(pendulumAttitude), cartPosition.y - armLength * cosf(pendulumAttitude));
+    rodPosition = sf::Vector2f((cartPosition.x + pendulumPosition.x) / 2, (cartPosition.y + pendulumPosition.y) / 2);
+
+    cart.setPosition(cartPosition);
+    pendulum.setPosition(pendulumPosition);
+    pendulumRim.setPosition(pendulumPosition);
+    rod.setPosition(rodPosition);
+    pivot.setPosition(cartPosition);
+    pivotRim.setPosition(cartPosition);
+    rod.setRotation( - (pendulumAttitude * 180 / M_PI) + 90);
+    
+    return std::make_tuple(cartPosition, cartLinearVelocity, pendulumAngularVelocity);
+}
+
+
+Eigen::Vector4f Pendulum::funct(Eigen::Vector4f x, float force, float forceS){
+    float xdot = x[1];
+    float thetadot = x[3];
+
+    float a = cartMass + pendulumMass;
+    float b = pendulumMass * armLength * cosf(x[2]);
+    float c = force - pendulumMass * armLength * powf(thetadot, 2) * sinf(x[2]);
+    float d = armLength;
+    float e = cosf(x[2]);
+    float f = conf::cgravity * sinf(x[2]) + forceS;
+
+    float xddot = ((c / a) + ((b * f) / (a * d))) / (1 - ((b * e) / (a * d)));
+    float thetaddot = (f + e * xddot) / d;
+
+    return {xdot, xddot, thetadot, thetaddot};
+}
+
+void Pendulum::draw(sf::RenderTarget& target, sf::RenderStates states) const{
+    target.draw(cart, states);
+    target.draw(rod, states);
+    target.draw(pivotRim, states);
+    target.draw(pivot, states);
+    target.draw(pendulumRim, states);
+    target.draw(pendulum, states);
+}
+
+
+
 
 
 
@@ -89,9 +230,25 @@ void Border::drawToTexture() {
     needsUpdate = false;
 }
 
-void Border::overrideColor(sf::Color color){
+void Border::overrideBorderColor(sf::Color color){
     for (size_t i = 0; i < border.getVertexCount(); i++){
         border[i].color = color;
+    }
+}
+
+
+void Border::overrideBackgroundColor(sf::Color color){
+    for (size_t i = 0; i < background1.getVertexCount(); i++){
+        background1[i].color = color;
+    }
+    for (size_t i = 0; i < background2.getVertexCount(); i++){
+        background2[i].color = color;
+    }
+    for (size_t i = 0; i < background3.getVertexCount(); i++){
+        background3[i].color = color;
+    }
+    for (size_t i = 0; i < background4.getVertexCount(); i++){
+        background4[i].color = color;
     }
 }
 
@@ -105,6 +262,7 @@ void Border::draw(sf::RenderTarget& target, sf::RenderStates state) const{
 
     if (needsUpdate) {
         renderTexture.clear(sf::Color::Transparent);
+
 
         renderTexture.draw(background1, state);
         renderTexture.draw(background2, state);

@@ -10,20 +10,20 @@
 
 namespace conf {
     const float cgravity = 9.81f;
-    const float timeStep = .02f;
-    const std::tuple<float, float> railBound = std::make_tuple(365, 1485);
+    const float timeStep = .015f;
+    const sf::Vector2f railBound = sf::Vector2f(365, 1485);
     const std::tuple<int, int> boundary = std::make_tuple(1920, 1080);
     
-    inline sf::ContextSettings getSettings() {
+    inline sf::ContextSettings getSettings(int antialiasLevel = 8) {
         sf::ContextSettings settings;
-        settings.antialiasingLevel = 8;
+        settings.antialiasingLevel = antialiasLevel;
         settings.majorVersion = 4;
         settings.minorVersion = 6;
         return settings;
     }
 
     inline const sf::ContextSettings& settings = getSettings();
-    inline sf::RenderWindow createWindow() {
+    inline sf::RenderWindow createWindow(sf::ContextSettings settings, std::tuple<float, float> boundary = std::make_tuple(1920, 1080)) {
         // Use the settings and boundary from the namespace
         return sf::RenderWindow(
             sf::VideoMode(std::get<0>(boundary), std::get<1>(boundary)),

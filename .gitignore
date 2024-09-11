@@ -4,4 +4,8 @@ out
 .idea
 .vs
 .vscode
-test.cpp
+dist
+PendulumSimulation.egg-info
+test.py
+binding.cpp
+setup.py
