@@ -1,30 +1,12 @@
 #include "events.hpp"
 #include "config.hpp"
 
-void processEvents(sf::RenderWindow& window, int& inputType){
+void processEvents(sf::RenderWindow& window){
     sf::Event event;
 
     // Correct usage of pollEvent()
     while (window.pollEvent(event)) {
         if (event.type == sf::Event::Closed)
             window.close();
-        else if (event.type == sf::Event::KeyPressed){
-            switch (event.key.code){
-                case sf::Keyboard::Left:
-                    inputType = LEFT;
-                    break;
-                case sf::Keyboard::Right:
-                    inputType = RIGHT;
-                    break;
-                case sf::Keyboard::Up:
-                    inputType = UP;
-                    break;
-                case sf::Keyboard::Down:
-                    inputType = DOWN;
-                    break;
-            }
-        }
-        else if (event.key.code == sf::Keyboard::Escape) window.close();
-        else inputType = 0;
     }
 }

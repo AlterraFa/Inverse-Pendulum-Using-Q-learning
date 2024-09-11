@@ -6,6 +6,7 @@ out
 .vscode
 dist
 PendulumSimulation.egg-info
-test.py
-binding.cpp
+bindings.cpp
+test*
 setup.py
+output

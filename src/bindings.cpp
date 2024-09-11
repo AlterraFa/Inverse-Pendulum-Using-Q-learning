@@ -138,7 +138,6 @@ PYBIND11_MODULE(PendulumSimulation, m){
     // in events.cpp
     m.def("processEvents", &processEvents, "Process predefined events");
 
-    // in physics.cpp
 
     // in layout.cpp
     m.def("createRail", &createRail, "Create railings for cart");

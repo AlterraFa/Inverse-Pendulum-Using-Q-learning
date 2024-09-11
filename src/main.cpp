@@ -2,7 +2,22 @@
 #include "config.hpp"
 #include "layout.hpp"
 #include "obj.hpp"
+#include <thread>
+#include <string>
+#include <mutex>
 
+void readInput(std::string& message, bool& updated, std::mutex& mutex) {
+    std::string input;
+    while (true) {
+        std::getline(std::cin, input);
+        if (input == "exit") {
+            break;
+        }
+        std::lock_guard<std::mutex> lock(mutex); // Ensure safe update
+        message = input;
+        updated = true;
+    }
+}
 
 signed main() {
 
@@ -20,13 +35,10 @@ signed main() {
     Border angularGraphBorder(sf::Vector2f(750, 650), sf::Vector2f(600, 300), 5.f, sf::Color(219, 192, 118), 12.5f);
     // For esthetic only
 
-    int inputType;
     float cartForce = 350, pendulumForce = 30;
 
-    float cartMass = 50;
+    float cartMass = 75;
     float pendulumMass = 10.5;
-    float angularVel = 0;
-    float theta = M_PI;
     float armLength = 200;
     float cartLinearVelocity, pendulumAngularVelocity;
     sf::Vector2f cartPosition(900, 290);
@@ -36,7 +48,7 @@ signed main() {
     test.setPosition(cartPosition);
 
 
-    size_t histSize = 4000, windowSize = 2;
+    size_t histSize = 4000;
     std::vector<sf::Vector2f> cartGraphBound = {sf::Vector2f(150, 700), sf::Vector2f(650, 900)};
     std::vector<sf::Vector2f> pendulumGraphBound = {sf::Vector2f(800, 700), sf::Vector2f(1300, 900)};
 
@@ -49,11 +61,27 @@ signed main() {
     Graphing cartGrapher(histSize, font, cartGraphBound, 2.0f);
     Graphing pendulumGrapher(histSize, font, pendulumGraphBound, 2.0f);
 
+    
+    int inputType = 0;
+    std::string message = "";
+    bool updated = false;
+    std::mutex mutex;
+    std::thread inputThread(readInput, std::ref(message), std::ref(updated), std::ref(mutex));
+
     while (window.isOpen()) {
-        processEvents(window, inputType);  
+        processEvents(window);  
 
-        std::cout << inputType << "\n";      
+        std::lock_guard<std::mutex> lock(mutex);
+        if (updated){
+            try {
+                inputType = std::stoi(message);
+            } catch (const std::invalid_argument& e){
+                std::cerr << "Invalid input: not a number" << std::endl;
+            }
+        }
+        updated = false;
 
+        
         std::tie(cartPosition, cartLinearVelocity, pendulumAngularVelocity) = pendulum.stateUpdate(cartForce, 
                                                                                                    pendulumForce,  
                                                                                                    conf::timeStep,
@@ -78,6 +106,8 @@ signed main() {
         window.draw(pendulumGrapher);
         window.display();
     }
+
+    inputThread.join();
 
     return 0;
 }
