@@ -1,5 +1,6 @@
 #pragma once
 #include <SFML/Graphics.hpp>
+#include <memory>
 #include <tuple>
 #include <iostream>
 
@@ -23,9 +24,10 @@ namespace conf {
     }
 
     inline const sf::ContextSettings& settings = getSettings();
-    inline sf::RenderWindow createWindow(sf::ContextSettings settings, std::tuple<float, float> boundary = std::make_tuple(1920, 1080)) {
-        // Use the settings and boundary from the namespace
-        return sf::RenderWindow(
+
+
+    inline  std::unique_ptr<sf::RenderWindow> createWindow(sf::ContextSettings settings, std::tuple<float, float> boundary = std::make_tuple(1920, 1080)) {
+        return std::make_unique<sf::RenderWindow>(
             sf::VideoMode(std::get<0>(boundary), std::get<1>(boundary)),
             "Pendulum simulation",
             sf::Style::Default,

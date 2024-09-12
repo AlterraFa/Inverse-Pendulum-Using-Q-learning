@@ -1,5 +1,6 @@
 #pragma once
 #include <SFML/Graphics.hpp>
+#include <memory>
 
 
-void processEvents(sf::RenderWindow& window);
+void processEvents(std::unique_ptr<sf::RenderWindow>& window);

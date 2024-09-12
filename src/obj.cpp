@@ -484,7 +484,6 @@ void Graphing::createHorizontalBars() {
             texts.push_back(text);
             horizontalBar.append(sf::Vertex(sf::Vector2f(graphBound[0].x, horBarPos[i]), sf::Color(180, 180, 180, 100)));
             horizontalBar.append(sf::Vertex(sf::Vector2f(graphBound[1].x, horBarPos[i]), sf::Color(180, 180, 180, 100)));
-            horizontalBar[0].position.x;
         }
     }    
 }

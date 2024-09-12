@@ -1,9 +1,12 @@
 #pragma once
+#include <math.h>
 #include <SFML/Graphics.hpp>
 #include <tuple>
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
+#define _USE_MATH_DEFINES
+#undef __STRICT_ANSI__
 #include <cmath>
 #include <algorithm>
 #include <numeric>
@@ -12,6 +15,10 @@
 #include <sstream>
 #include <eigen3/Eigen/Dense>
 #include "config.hpp"
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 #ifndef Shapes_HPP
 #define Shapes_HPP
@@ -65,7 +72,7 @@ class Pendulum : public sf::Drawable{
         Pendulum(float cartMass, float pendulumMass, float armLength, sf::Vector2f cartPosition, float pendulumAttitude = M_PI);
         void dimension(sf::Vector2f cartDimension = sf::Vector2f(150, 20), float pendulumRadius = 20, float pivotRadius = 20, float rodThickness = 6);
         std::tuple<sf::Vector2f, float, float> stateUpdate(float cartForce, float pendulumForce, float timeStep, int inputType, 
-                                                           sf::Vector2f railBound = static_cast<sf::Vector2f>(conf::createWindow(conf::getSettings()).getSize()),
+                                                           sf::Vector2f railBound = static_cast<sf::Vector2f>(conf::createWindow(conf::getSettings()) -> getSize()),
                                                            float slidingFriction = 5, float angularFriction = .005);
 };
 

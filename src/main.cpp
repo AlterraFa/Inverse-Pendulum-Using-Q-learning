@@ -2,9 +2,11 @@
 #include "config.hpp"
 #include "layout.hpp"
 #include "obj.hpp"
+#include <SFML/Graphics/RectangleShape.hpp>
 #include <thread>
 #include <string>
 #include <mutex>
+
 
 void readInput(std::string& message, bool& updated, std::mutex& mutex) {
     std::string input;
@@ -19,11 +21,12 @@ void readInput(std::string& message, bool& updated, std::mutex& mutex) {
     }
 }
 
+
 signed main() {
 
 
     // For esthetic only
-    sf::RenderWindow window = conf::createWindow(conf::getSettings());
+    auto window = conf::createWindow(conf::getSettings());
     sf::RectangleShape lowerRail, upperRail;
     std::tie(lowerRail, upperRail) = createRail(290, 20, 290, 1270);
 
@@ -68,7 +71,9 @@ signed main() {
     std::mutex mutex;
     std::thread inputThread(readInput, std::ref(message), std::ref(updated), std::ref(mutex));
 
-    while (window.isOpen()) {
+
+
+    while (window -> isOpen()) {
         processEvents(window);  
 
         std::lock_guard<std::mutex> lock(mutex);
@@ -85,7 +90,7 @@ signed main() {
         std::tie(cartPosition, cartLinearVelocity, pendulumAngularVelocity) = pendulum.stateUpdate(cartForce, 
                                                                                                    pendulumForce,  
                                                                                                    conf::timeStep,
-                                                                                                   inputType, conf::railBound);
+                                                                                                   inputType, conf::railBound, 12.5, 0.01);
 
 
         cartGrapher.update(cartLinearVelocity, 2);
@@ -93,18 +98,18 @@ signed main() {
 
 
 
-        window.clear(sf::Color(50, 50, 50));
-        window.draw(velGraphBorder);
-        window.draw(pendulumbBorder);
-        window.draw(angularGraphBorder);
-        window.draw(upperRail);
-        window.draw(lowerRail);
-        window.draw(pendulum);
-        window.draw(rightCircle);
-        window.draw(leftCircle);
-        window.draw(cartGrapher);
-        window.draw(pendulumGrapher);
-        window.display();
+        window -> clear(sf::Color(50, 50, 50));
+        window -> draw(velGraphBorder);
+        window -> draw(pendulumbBorder);
+        window -> draw(angularGraphBorder);
+        window -> draw(upperRail);
+        window -> draw(lowerRail);
+        window -> draw(pendulum);
+        window -> draw(rightCircle);
+        window -> draw(leftCircle);
+        window -> draw(cartGrapher);
+        window -> draw(pendulumGrapher);
+        window -> display();
     }
 
     inputThread.join();
