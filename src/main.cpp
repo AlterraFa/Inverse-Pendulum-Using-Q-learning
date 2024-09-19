@@ -2,7 +2,7 @@
 #include "config.hpp"
 #include "layout.hpp"
 #include "obj.hpp"
-#include <SFML/Graphics/RectangleShape.hpp>
+#include <eigen3/Eigen/src/Core/IO.h>
 #include <thread>
 #include <string>
 #include <mutex>
@@ -43,7 +43,7 @@ signed main() {
     float cartMass = 75;
     float pendulumMass = 10.5;
     float armLength = 200;
-    float cartLinearVelocity, pendulumAngularVelocity;
+    float cartLinearVelocity, pendulumAngularVelocity, pendulumAttitude;
     sf::Vector2f cartPosition(900, 290);
     Pendulum pendulum(cartMass, pendulumMass, armLength, cartPosition);
 
@@ -71,7 +71,7 @@ signed main() {
     std::mutex mutex;
     std::thread inputThread(readInput, std::ref(message), std::ref(updated), std::ref(mutex));
 
-
+    Eigen::VectorXd state(4);
 
     while (window -> isOpen()) {
         processEvents(window);  
@@ -86,16 +86,16 @@ signed main() {
         }
         updated = false;
 
-        
-        std::tie(cartPosition, cartLinearVelocity, pendulumAngularVelocity) = pendulum.stateUpdate(cartForce, 
-                                                                                                   pendulumForce,  
-                                                                                                   conf::timeStep,
-                                                                                                   inputType, conf::railBound, 12.5, 0.01);
+        std::tie(cartPosition, cartLinearVelocity, pendulumAngularVelocity, pendulumAttitude) = pendulum.stateUpdate(cartForce, 
+                                                                                                                     pendulumForce,  
+                                                                                                                     conf::timeStep,
+                                                                                                                     inputType, conf::railBound, 12.5, 0.01);
 
+        state << cartPosition.x, cartLinearVelocity, pendulumAngularVelocity, pendulumAttitude;
+        std::cout << state.format(Eigen::IOFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", ", ", "", "", "")) << std::endl;
 
         cartGrapher.update(cartLinearVelocity, 2);
         pendulumGrapher.update(pendulumAngularVelocity * 180 / M_PI, 2);
-
 
 
         window -> clear(sf::Color(50, 50, 50));

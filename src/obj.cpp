@@ -120,9 +120,9 @@ void Pendulum::dimension(sf::Vector2f cartDimension, float pendulumRadius, float
 
 }
 
-std::tuple<sf::Vector2f, float, float> Pendulum::stateUpdate(float cartForce, float pendulumForce, float timeStep, int inputType, 
-                                                             sf::Vector2f railBound,
-                                                             float slidingFriction, float angularFriction){
+std::tuple<sf::Vector2f, float, float, float> Pendulum::stateUpdate(float cartForce, float pendulumForce, float timeStep, int inputType, 
+                                                                    sf::Vector2f railBound,
+                                                                    float slidingFriction, float angularFriction){
 
     float forceOnCart = (inputType == RIGHT && !(cartPosition.x >= conf::railBound.y))? cartForce: (inputType == LEFT && !(cartPosition.x <= conf::railBound.x))? -cartForce: 0;
     float forceOnPendulum = (inputType == UP)? -pendulumForce: (inputType == DOWN)? pendulumForce: 0;
@@ -161,6 +161,10 @@ std::tuple<sf::Vector2f, float, float> Pendulum::stateUpdate(float cartForce, fl
         cartPosition.x = railBound.y;
     }
 
+    
+    pendulumAttitude = fmod(pendulumAttitude, 2 * M_PI); 
+    if (pendulumAttitude < 0) pendulumAttitude += 2 * M_PI;
+
     pendulumPosition = sf::Vector2f(cartPosition.x - armLength * sinf(pendulumAttitude), cartPosition.y - armLength * cosf(pendulumAttitude));
     rodPosition = sf::Vector2f((cartPosition.x + pendulumPosition.x) / 2, (cartPosition.y + pendulumPosition.y) / 2);
 
@@ -172,7 +176,7 @@ std::tuple<sf::Vector2f, float, float> Pendulum::stateUpdate(float cartForce, fl
     pivotRim.setPosition(cartPosition);
     rod.setRotation( - (pendulumAttitude * 180 / M_PI) + 90);
     
-    return std::make_tuple(cartPosition, cartLinearVelocity, pendulumAngularVelocity);
+    return std::make_tuple(cartPosition, cartLinearVelocity, pendulumAngularVelocity, (pendulumAttitude * 180 / M_PI));
 }
 
 
