@@ -1,29 +1,17 @@
-# %% 
-# TODO: 
-# - Implement validation split (STATUS: Complete)
-# - Find a way to load a model for transfer learning. 
-#   AKA .add attribute (STATUS: Complete)
-# - Change layer argument in Sequential to accepting list 
-#   instead of *args (STATUS: Complete)
-# - Implement swish, leaky relu (STATUS: Complete)
-# - Add l1, l2 and Elastic net reg term (STATUS: Complete)
-# - AdaGrad Implementation
-# - Introduce metrics for evaluation
-# - Research on loss function and fix softmax
-# - Research on Conv2D layer and its backpropagation
 import os
-import numpy as cp
+import cupy as cp
 import pickle
-from numpy import ndarray
+from cupy import ndarray
 from typing import Any, Union, Literal
 from tqdm import tqdm
 
 class InvalidClass(Exception):
     ...
 
-
 class InputError(Exception):
     ...
+
+class InvalidActivationFunction(Exception):...
 cp.random.seed(0)
 
 # REGULARIZER
@@ -74,10 +62,20 @@ class Funct(object):
         return funct, derivative
 
     @staticmethod
+    def sigmoidWithLosss():
+        def funct(z: ndarray) -> ndarray:
+            return 1 / (1 + cp.exp(-z))
+
+        def derivative(z: ndarray) -> ndarray:
+            return cp.ones_like(z)
+
+        return funct, derivative
+
+    @staticmethod
     def softmaxs():
         def funct(z: ndarray) -> ndarray:
-            exp_z = np.exp(z - np.max(z, axis = 1, keepdims = True))
-            return exp_z / np.sum(exp_z, axis = 1, keepdims = True)
+            exp_z = cp.exp(z)
+            return exp_z / cp.sum(exp_z, axis = 0)
 
         def derivative(z: ndarray) -> ndarray:
             return cp.ones_like(z)
@@ -140,6 +138,7 @@ class Funct(object):
     swish = swishs()
     tanh = tanhs()
     sigmoid = sigmoids()
+    sigmoidWithLoss = sigmoidWithLosss()
     softmax = softmaxs()
     relu = relus()
     softplus = softpluss()
@@ -242,7 +241,7 @@ class RMSProp(object):
     def __build__(self, weights, russian_biases):
         for w, b in zip(weights, russian_biases):
             self.Sdw += [cp.zeros_like(w, dtype=cp.float64)]
-            self.Sdb += [cp.zeros_like(b, scwqdtype=cp.float64)]
+            self.Sdb += [cp.zeros_like(b, dtype=cp.float64)]
 
     def __update__(self, weights, russian_biases, nabla_ws, nabla_bs):
         for index in range(len(weights)):
@@ -274,9 +273,9 @@ class Dense(Funct):
         if self.optional and 'input_shape' in self.optional.keys():
             weight = cp.random.randn(
                 self.units,
-                cp.prod(cp.array(self.optional["input_shape"]))
+                int(cp.prod(cp.array(self.optional["input_shape"])))
             )
-            weight *= cp.sqrt(2 / (2 * cp.prod(self.optional["input_shape"]) + 1))
+            weight *= cp.sqrt(2 / (2 * cp.prod(cp.array(self.optional["input_shape"])) + 1))
 
         else:
             weight = cp.random.randn(
@@ -293,13 +292,21 @@ class Dense(Funct):
         expanded_inputs = cp.hstack([input, cp.atleast_2d(cp.ones(input.shape[0])).T]).T
 
         z = expanded_weights @ expanded_inputs
-        h = getattr(self, self.activation)[0](z).T
+
+        try:
+            h = getattr(self, self.activation)[0](z).T
+        except AttributeError as e:
+            raise InvalidActivationFunction(f"Activation function '{self.activation}' not found. If you're using bceloss, use sigmoid instead")
 
         return h, z
 
     def __backward__(self, dy, dot_prod, batch_input, weight):
-        
-        nabla_z = dy * getattr(self, self.activation)[1](dot_prod)
+        try:
+            nabla_z = dy * getattr(self, self.activation)[1](dot_prod)
+        except AttributeError as e:
+            print(f"Error: {e}")
+            print(f"Activation function '{self.activation}' not found.")
+            print(f"Available methods: {dir(self)}")
         nabla_w = ((nabla_z @ batch_input) - self.kernel_regularizer.__reg__(weight))
         nabla_b = cp.sum(nabla_z, axis=1, keepdims=True).T
         dy = weight.T @ nabla_z
@@ -358,11 +365,13 @@ class Sequential(object):
         self.__bias_weights += [bias]
 
     def compile(self,
-                loss: Literal['mse', 'cross_entropy_loss'] = 'mse',
+                loss: Literal['mse', 'celoss', 'bceloss'] = 'mse',
                 optimizer: Union[Adam, RMSProp, SGD] = Adam()):
         
         self.loss = loss
         self.optimizer = optimizer
+        if loss == 'bceloss':
+            self.layers[-1].activation += 'WithLoss'
         self.optimizer.__build__(self.weights, self.__bias_weights)
         self.compile_called = True
 
@@ -407,15 +416,17 @@ class Sequential(object):
         loss = cp.mean((1 / 2) * cp.sum((pred - y_truth) ** 2, axis=1))
         dy = (pred - y_truth)
         return loss, dy
-    
-    @staticmethod
-    def mae(pred, y_truth):
-        loss = cp.mean(cp.abs((pred - y_truth)), axis = 1)
         
     @staticmethod
-    def cross_entropy_loss(pred, y_truth):
+    def celoss(pred, y_truth):
         loss = - cp.mean(np.sum(y_truth * np.log(pred + 1e-5), axis = 1))
-        dy = (pred - y_truth) / y_truth.shape[1]
+        dy = pred - y_truth
+        return loss, dy
+    
+    @staticmethod
+    def bceloss(pred, y_truth):
+        loss = - cp.mean(np.sum(y_truth * np.log(pred + 1e-5) + (1 - y_truth) * np.log(1 - pred + 1e-5), axis = 1))
+        dy = pred - y_truth
         return loss, dy
 
     def fit(self, x, y, epochs: int = 1, batch_size: int = 1, validation_split: float = 0, shuffle: bool = True):
