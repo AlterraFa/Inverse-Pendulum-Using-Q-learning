@@ -1,7 +1,8 @@
 import os
 import cupy as cp
-import pickle
 from cupy import ndarray
+import numpy as np
+import pickle
 from typing import Any, Union, Literal
 from tqdm import tqdm
 
@@ -208,24 +209,6 @@ class SGD(object):
         
         return weights, russian_biases
 
-
-import numpy as np
-
-def log_array_to_file(array: np.ndarray, file_path: str):
-    """
-    Logs the array into a text file. If the file already exists, it overwrites the content.
-    
-    Parameters:
-    - array (np.ndarray): The array data to be logged.
-    - file_path (str): The path to the text file where the data should be logged.
-    """
-    # Open the file in write mode to overwrite existing content
-    with open(file_path, 'w') as file:
-        # Iterate through the array and write each row
-        for row in array:
-            # Convert each row to a string and write to the file
-            file.write(" ".join(map(str, row)) + "\n")
-
 class RMSProp(object):
     def __init__(self,
                  learning_rate: float = 0.001,
@@ -295,18 +278,13 @@ class Dense(Funct):
 
         try:
             h = getattr(self, self.activation)[0](z).T
-        except AttributeError as e:
+        except AttributeError:
             raise InvalidActivationFunction(f"Activation function '{self.activation}' not found. If you're using bceloss, use sigmoid instead")
 
         return h, z
 
     def __backward__(self, dy, dot_prod, batch_input, weight):
-        try:
-            nabla_z = dy * getattr(self, self.activation)[1](dot_prod)
-        except AttributeError as e:
-            print(f"Error: {e}")
-            print(f"Activation function '{self.activation}' not found.")
-            print(f"Available methods: {dir(self)}")
+        nabla_z = dy * getattr(self, self.activation)[1](dot_prod)
         nabla_w = ((nabla_z @ batch_input) - self.kernel_regularizer.__reg__(weight))
         nabla_b = cp.sum(nabla_z, axis=1, keepdims=True).T
         dy = weight.T @ nabla_z
@@ -473,17 +451,13 @@ class Sequential(object):
 
                 # Forward Feed
                 pred, batch_inputs, dot_prods = self.ForwardProp(x_train[index: index + batch_size])
-                test_number = y_train[index: index + batch_size]
+                test_number = np.argmax(y_train[index: index + batch_size], axis = 1)
 
                 # Array of y truth
                 check += cp.sum(cp.argmax(pred, axis=1) == test_number)
-                y_truth = cp.full((batch_size, self.layers[-1].units), 0)
-                y_truth[cp.arange(batch_size), test_number] = 1
 
                 # Derivative and loss
-                loss, dy = getattr(Sequential, self.loss)(pred, y_truth)
-                # print(dy)
-                log_array_to_file(cp.round(pred[:10, :], 3), 'log.txt')
+                loss, dy = getattr(Sequential, self.loss)(pred, y_train[index: index + batch_size])
 
                 # Backpropagation
                 nabla_ws, nabla_bs = self.BackProp(dy.T, dot_prods, batch_inputs)
@@ -510,7 +484,7 @@ class Sequential(object):
 
                 valPass += batch_size
                 pred = self.predict(x_val[index: index + batch_size], batch_size = batch_size)
-                val_score += cp.sum(cp.argmax(pred, axis = 1) == y_val[index: index + batch_size])
+                val_score += cp.sum(cp.argmax(pred, axis = 1) == cp.argmax(y_val[index: index + batch_size], axis = 1))
 
                 valPbar.set_postfix_str(f"Val Accuracy {val_score / valPass:.4f}")
             # break
