@@ -464,9 +464,9 @@ class Sequential(object):
 
                 # Updating
                 self.weights, self.__bias_weights = self.optimizer.__update__(self.weights,
-                                                                            self.__bias_weights,
-                                                                            nabla_ws,
-                                                                            nabla_bs)
+                                                                              self.__bias_weights,
+                                                                              nabla_ws,
+                                                                              nabla_bs)
 
                 cost += loss
                 total_pass += batch_size

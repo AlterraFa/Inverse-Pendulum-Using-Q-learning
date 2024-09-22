@@ -4,6 +4,7 @@
 #include <tuple>
 #include <iostream>
 
+#define EXIT    -1
 #define UP      1
 #define DOWN    2
 #define LEFT    3

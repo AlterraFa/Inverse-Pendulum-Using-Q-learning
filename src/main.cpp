@@ -36,8 +36,16 @@ signed main() {
     Border pendulumbBorder(sf::Vector2f(100, 50), sf::Vector2f(1650, 500), 10.5f, sf::Color(232, 109, 80), 15.f);
     Border velGraphBorder(sf::Vector2f(100, 650), sf::Vector2f(600, 300), 5.f, sf::Color(219, 192, 118), 12.5f);
     Border angularGraphBorder(sf::Vector2f(750, 650), sf::Vector2f(600, 300), 5.f, sf::Color(219, 192, 118), 12.5f);
+
+    sf::Font font;
+    if (!font.loadFromFile("/usr/share/fonts/JetBrainsMonoNerdFont-Light.ttf")) {
+        std::cerr << "Error: could not load font" << "\n";
+        return -21321432;
+    }
     // For esthetic only
 
+
+    int inputType = 0;
     float cartForce = 350, pendulumForce = 30;
 
     float cartMass = 75;
@@ -47,25 +55,13 @@ signed main() {
     sf::Vector2f cartPosition(900, 290);
     Pendulum pendulum(cartMass, pendulumMass, armLength, cartPosition);
 
-    Rectangle test(150, 20);
-    test.setPosition(cartPosition);
-
-
     size_t histSize = 4000;
     std::vector<sf::Vector2f> cartGraphBound = {sf::Vector2f(150, 700), sf::Vector2f(650, 900)};
     std::vector<sf::Vector2f> pendulumGraphBound = {sf::Vector2f(800, 700), sf::Vector2f(1300, 900)};
 
-    sf::Font font;
-    if (!font.loadFromFile("/usr/share/fonts/JetBrainsMonoNerdFont-Light.ttf")) {
-        std::cerr << "Error: could not load font" << "\n";
-        return -21321432;
-    }
-
     Graphing cartGrapher(histSize, font, cartGraphBound, 2.0f);
     Graphing pendulumGrapher(histSize, font, pendulumGraphBound, 2.0f);
-
     
-    int inputType = 0;
     std::string message = "";
     bool updated = false;
     std::mutex mutex;
@@ -73,19 +69,18 @@ signed main() {
 
     Eigen::VectorXd state(4);
 
-    while (window -> isOpen()) {
-        processEvents(window);  
-
+    while (inputType != EXIT) {
         std::lock_guard<std::mutex> lock(mutex);
         if (updated){
             try {
-                inputType = std::stoi(message);
+                std::stoi(message);
             } catch (const std::invalid_argument& e){
                 std::cerr << "Invalid input: not a number" << std::endl;
             }
         }
         updated = false;
 
+        processEvents(window, inputType);  
         std::tie(cartPosition, cartLinearVelocity, pendulumAngularVelocity, pendulumAttitude) = pendulum.stateUpdate(cartForce, 
                                                                                                                      pendulumForce,  
                                                                                                                      conf::timeStep,
@@ -112,7 +107,5 @@ signed main() {
         window -> display();
     }
 
-    inputThread.join();
-
-    return 0;
+    return 416;
 }
