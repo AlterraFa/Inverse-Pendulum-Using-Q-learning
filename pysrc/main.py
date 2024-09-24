@@ -1,22 +1,67 @@
 import os
+import copy
 import fcntl
 import select
 import subprocess
 import numpy as np
+from modules import *
 
-def parse_matrix(matStr):
-    try:
-        data = np.fromiter((float(x) for x in matStr.replace(';', ',').split(',')), dtype=float)
-        rows = matStr.count(';') + 1
-        cols = matStr.split(';')[0].count(',') + 1
-        return data.reshape(rows, cols)
-    except ValueError as e:
-        print(f"Error parsing matrix: {e}")
-        return None
 
-def setNonBlocking(fd):
-    fl = fcntl.fcntl(fd, fcntl.F_GETFL)
-    fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
+
+class Communicator():
+    def __init__(self, execPath: str, mediumPath: str) -> None:
+        self.mediumPath = mediumPath
+        self.execPath = execPath
+        self.process = subprocess.Popen(
+            [execPath],
+            stdout = subprocess.PIPE,
+            stderr = subprocess.PIPE,
+            text = True,
+            bufsize = 1
+        )
+
+        if self.process.stderr == None or self.process.stdout == None:
+            print("Failed to initialize program")
+            exit(1)
+        self.setNonBlocking(self.process.stdout.fileno())
+        self.setNonBlocking(self.process.stderr.fileno())
+
+    @staticmethod
+    def parse_matrix(matStr):
+        try:
+            data = np.fromiter((float(x) for x in matStr.replace(';', ',').split(',')), dtype=float)
+            rows = matStr.count(';') + 1
+            cols = matStr.split(';')[0].count(',') + 1
+            return data.reshape(rows, cols)
+        except ValueError as e:
+            print(f"Error parsing matrix: {e}")
+            return None
+
+    @staticmethod
+    def setNonBlocking(fd):
+        fl = fcntl.fcntl(fd, fcntl.F_GETFL)
+        fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
+
+
+    def readAndWrite(self, text: str):
+        if self.process.stderr == None or self.process.stdout == None:
+            print("Failed to initialize program")
+            exit(1)
+
+        with open(self.mediumPath, "w") as file:
+            fcntl.flock(file, fcntl.LOCK_EX)
+            file.write(text)
+        ready, _, _ = select.select([self.process.stdout.fileno(), self.process.stderr.fileno()], [], [], 0.1)
+
+        output, error = None, None
+        for fd in ready:
+            if fd == self.process.stdout.fileno():
+                output = self.process.stdout.readline()
+
+            elif fd == self.process.stderr.fileno():
+                error = self.process.stderr.readline()
+
+        return output, error
 
 
 if __name__ == "__main__":
@@ -33,38 +78,22 @@ if __name__ == "__main__":
         print(f"Error during CMake build: {e}")
         exit(1)
 
-    process = subprocess.Popen(
-        [exec_path],  
-        stdin = subprocess.PIPE,
-        stdout = subprocess.PIPE,
-        stderr = subprocess.PIPE,
-        bufsize = 1,
-        text = True
-    )
+    listener = Communicator(exec_path, "pysrc/medium")
+    qModel = Sequential()
+    qModel.add(Dense(24, activation = 'leaky_relu', input_shape = (4, )))
+    qModel.add(Dense(24, activation = 'leaky_relu'))
+    qModel.add(Dense(3, activation = 'linear'))
+    tdModel = copy.deepcopy(qModel) 
+    actionMap = np.array([3, 0, 4])
+    
+    action = 0
+    while listener.process.poll() is None:
+        output, err = listener.readAndWrite(str(action))
+        
+        state = np.array([[0, 0, 0, 0]])
+        try:
+            state = listener.parse_matrix(output)
+        except: ...
 
-    if process.stdin is None or process.stderr == None or process.stdout == None:
-        print("Failed to initialize program")
-        exit(1)
-
-    setNonBlocking(process.stdout.fileno())
-    setNonBlocking(process.stderr.fileno())
-
-
-    while process.poll() is None:
-        test = np.random.randint(3, 5);
-        with open('pysrc/medium', 'w') as f:
-            fcntl.flock(f, fcntl.LOCK_EX)
-            f.write(str(test))
-        ready, _, _ = select.select([process.stdout.fileno(), process.stderr.fileno()], [], [], 0.1)
-
-        for fd in ready:
-            if fd == process.stdout.fileno():
-                output = process.stdout.readline()
-                if output:
-                    print(parse_matrix(output.strip()), end = "               \r", flush = True)
-                    ...
-            elif fd == process.stderr.fileno():
-                error = process.stderr.readline()
-                if error:
-                    # print(error.strip())
-                    ...
+        qVal = qModel.predict(state)
+        action = actionMap[np.argmax(qVal)]

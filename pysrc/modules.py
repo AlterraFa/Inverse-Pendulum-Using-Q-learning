@@ -1,7 +1,7 @@
 import os
-import cupy as cp
+import numpy as cp
 import numpy as np
-from cupy import ndarray
+from numpy import ndarray
 import pickle
 from typing import Any, Union, Literal
 from tqdm import tqdm
@@ -135,6 +135,16 @@ class Funct(object):
             return cp.where(z > 0, 1, cp.exp(z))
         
         return funct, derivative
+
+    @staticmethod
+    def linears():
+        def funct(z: ndarray) -> ndarray:
+            return z
+
+        def derivative(z: ndarray) -> ndarray:
+            return cp.ones_like(z)
+
+        return funct, derivative
         
     leaky_relu = leaky_relus()
     swish = swishs()
@@ -145,9 +155,10 @@ class Funct(object):
     relu = relus()
     softplus = softpluss()
     elu = elus()
+    linear = linears()
+
 
 # OPTIMIZERS
-
 class Adam(object):
     def __init__(self,
                  learning_rate: float = 0.001,
@@ -241,7 +252,7 @@ class RMSProp(object):
 class Dense(Funct):
     def __init__(self,
                  units: int,
-                 activation: Literal['sigmoid', 'tanh', 'softmax', 'swish', 'leaky_relu', 'relu'] = 'sigmoid',
+                 activation: Literal['sigmoid', 'tanh', 'softmax', 'swish', 'leaky_relu', 'relu', 'linear'] = 'sigmoid',
                  kernel_regularizers: Any | None = None,
                  **optional: tuple[Any, ...]) -> None:
         self.units = units
