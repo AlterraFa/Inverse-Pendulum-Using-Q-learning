@@ -1,8 +1,8 @@
-import subprocess
 import os
+import fcntl
 import select
+import subprocess
 import numpy as np
-
 
 def parse_matrix(matStr):
     try:
@@ -13,6 +13,10 @@ def parse_matrix(matStr):
     except ValueError as e:
         print(f"Error parsing matrix: {e}")
         return None
+
+def setNonBlocking(fd):
+    fl = fcntl.fcntl(fd, fcntl.F_GETFL)
+    fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
 
 
 if __name__ == "__main__":
@@ -34,30 +38,33 @@ if __name__ == "__main__":
         stdin = subprocess.PIPE,
         stdout = subprocess.PIPE,
         stderr = subprocess.PIPE,
+        bufsize = 1,
+        text = True
     )
 
     if process.stdin is None or process.stderr == None or process.stdout == None:
         print("Failed to initialize program")
         exit(1)
 
+    setNonBlocking(process.stdout.fileno())
+    setNonBlocking(process.stderr.fileno())
+
 
     while process.poll() is None:
+        test = np.random.randint(3, 5);
+        with open('pysrc/medium', 'w') as f:
+            fcntl.flock(f, fcntl.LOCK_EX)
+            f.write(str(test))
         ready, _, _ = select.select([process.stdout.fileno(), process.stderr.fileno()], [], [], 0.1)
 
         for fd in ready:
             if fd == process.stdout.fileno():
-                output = process.stdout.readline().decode('utf-8')
+                output = process.stdout.readline()
                 if output:
                     print(parse_matrix(output.strip()), end = "               \r", flush = True)
+                    ...
             elif fd == process.stderr.fileno():
-                error = process.stderr.readline().decode('utf-8')
+                error = process.stderr.readline()
                 if error:
-                    print(error.strip())
-
-
-        process.stdin.write(b"1\n")
-        try:
-            process.stdin.flush()
-        except Exception as e:
-            print("Pipe broke, exiting")
-            break
+                    # print(error.strip())
+                    ...

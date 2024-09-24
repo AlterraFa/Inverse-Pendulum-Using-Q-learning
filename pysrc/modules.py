@@ -1,7 +1,7 @@
 import os
 import cupy as cp
-from cupy import ndarray
 import numpy as np
+from cupy import ndarray
 import pickle
 from typing import Any, Union, Literal
 from tqdm import tqdm
@@ -12,6 +12,7 @@ class InvalidClass(Exception):
 class InputError(Exception):
     ...
 
+
 class InvalidActivationFunction(Exception):...
 cp.random.seed(0)
 
@@ -20,14 +21,14 @@ class L1(object):
     def __init__(self, L1: float = .01) -> None:
         self.L1 = L1
     
-    def __reg__(self, weights): 
+    def __reg__(self, weights: ndarray): 
         return self.L1 * cp.where(weights > 0, 1, -1)
 
 class L2(object):
     def __init__(self, L2: float = .01) -> None:
         self.L2 = L2
         
-    def __reg__(self, weights):
+    def __reg__(self, weights: ndarray):
         return self.L2 * weights * 2
 
 class L1L2(object):
@@ -35,7 +36,7 @@ class L1L2(object):
         self.L1 = L1
         self.L2 = L2
     
-    def __reg__(self, weights):
+    def __reg__(self, weights: ndarray):
         return self.L1 * cp.where(weights > 0, 1, -1) + self.L2 * weights * 2
 
 # ACTIVATION FUNCTION
@@ -406,6 +407,10 @@ class Sequential(object):
         loss = - cp.mean(np.sum(y_truth * np.log(pred + 1e-5) + (1 - y_truth) * np.log(1 - pred + 1e-5), axis = 1))
         dy = pred - y_truth
         return loss, dy
+    
+    @staticmethod
+    def qloss(td, qvals):
+        ...
 
     def fit(self, x, y, epochs: int = 1, batch_size: int = 1, validation_split: float = 0, shuffle: bool = True):
 
@@ -470,7 +475,6 @@ class Sequential(object):
 
                 cost += loss
                 total_pass += batch_size
-                # break
                 pbar.set_postfix_str(f"Loss: {cost / iteration:.4f} - Accuracy: {check / total_pass:.4f}")
                 iteration += 1
 
@@ -487,7 +491,6 @@ class Sequential(object):
                 val_score += cp.sum(cp.argmax(pred, axis = 1) == cp.argmax(y_val[index: index + batch_size], axis = 1))
 
                 valPbar.set_postfix_str(f"Val Accuracy {val_score / valPass:.4f}")
-            # break
             print('')
                 
 
