@@ -71,7 +71,7 @@ class Pendulum : public sf::Drawable{
     public:
         Pendulum(float cartMass, float pendulumMass, float armLength, sf::Vector2f cartPosition, float pendulumAttitude = M_PI);
         void dimension(sf::Vector2f cartDimension = sf::Vector2f(150, 20), float pendulumRadius = 20, float pivotRadius = 20, float rodThickness = 6);
-        std::tuple<sf::Vector2f, float, float, float> stateUpdate(float cartForce, float pendulumForce, float timeStep, int inputType, 
+        std::tuple<sf::Vector2f, float, float, float> stateUpdate(std::vector<float> cartForce, float pendulumForce, float timeStep, int inputType, 
                                                                   sf::Vector2f railBound = static_cast<sf::Vector2f>(conf::createWindow(conf::getSettings()) -> getSize()),
                                                                   float slidingFriction = 5, float angularFriction = .005);
 };

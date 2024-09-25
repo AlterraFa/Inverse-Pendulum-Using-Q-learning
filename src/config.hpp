@@ -7,8 +7,10 @@
 #define EXIT    -1
 #define UP      1
 #define DOWN    2
-#define LEFT    3
-#define RIGHT   4
+#define LEFT1   3
+#define RIGHT1  4
+#define LEFT2   5
+#define RIGHT2  6
 
 namespace conf {
     const float cgravity = 9.81f;

@@ -82,9 +82,9 @@ if __name__ == "__main__":
     qModel = Sequential()
     qModel.add(Dense(24, activation = 'leaky_relu', input_shape = (4, )))
     qModel.add(Dense(24, activation = 'leaky_relu'))
-    qModel.add(Dense(3, activation = 'linear'))
+    qModel.add(Dense(5, activation = 'linear'))
     tdModel = copy.deepcopy(qModel) 
-    actionMap = np.array([3, 0, 4])
+    actionMap = np.array([3, 5, 0, 6, 4])
     
     action = 0
     while listener.process.poll() is None:
@@ -96,4 +96,5 @@ if __name__ == "__main__":
         except: ...
 
         qVal = qModel.predict(state)
+        print(qVal, end = '               \r', flush = True)
         action = actionMap[np.argmax(qVal)]

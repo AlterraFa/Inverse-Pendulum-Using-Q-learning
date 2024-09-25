@@ -4,13 +4,9 @@
 #include "obj.hpp"
 #include <sys/file.h>
 #include <unistd.h>
-#include <eigen3/Eigen/src/Core/IO.h>
-#include <fstream>
-#include <thread>
 #include <string>
 #include <mutex>
 #include <fcntl.h>
-#include <unistd.h>
 
 void readInput(std::string &message, bool &updated, std::mutex &mutex) {
     std::string input;
@@ -46,7 +42,8 @@ signed main() {
     // For aesthetics only
 
     int inputType = 0;
-    float cartForce = 350, pendulumForce = 30;
+    float pendulumForce = 30;
+    std::vector<float> cartForce = {350.f, 200.f};
 
     float cartMass = 75;
     float pendulumMass = 10.5;

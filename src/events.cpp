@@ -16,10 +16,10 @@ void processEvents(std::unique_ptr<sf::RenderWindow>& window, int& inputType){
                     inputType = DOWN;
                     break;
                 case sf::Keyboard::Left:
-                    inputType = LEFT;
+                    inputType = LEFT1;
                     break;
                 case sf::Keyboard::Right:
-                    inputType = RIGHT;
+                    inputType = RIGHT2;
                     break;
                 case sf::Keyboard::Escape:
                     inputType = EXIT;

@@ -1,4 +1,5 @@
 #include "obj.hpp"
+#include <eigen3/Eigen/src/Core/Matrix.h>
 
 //------------------------------------------ Rectangle class --------------------------------------------------------//
 Rectangle::Rectangle() : shape(sf::Vector2f(0, 0)) {
@@ -120,13 +121,14 @@ void Pendulum::dimension(sf::Vector2f cartDimension, float pendulumRadius, float
 
 }
 
-std::tuple<sf::Vector2f, float, float, float> Pendulum::stateUpdate(float cartForce, float pendulumForce, float timeStep, int inputType, 
+std::tuple<sf::Vector2f, float, float, float> Pendulum::stateUpdate(std::vector<float> cartForce, float pendulumForce, float timeStep, int inputType, 
                                                                     sf::Vector2f railBound,
                                                                     float slidingFriction, float angularFriction){
 
-    float forceOnCart = (inputType == RIGHT && !(cartPosition.x >= conf::railBound.y))? cartForce: (inputType == LEFT && !(cartPosition.x <= conf::railBound.x))? -cartForce: 0;
+    float forceOnCart1 = (inputType == RIGHT1 && !(cartPosition.x >= conf::railBound.y))? cartForce[0]: (inputType == LEFT1 && !(cartPosition.x <= conf::railBound.x))? -cartForce[0]: 0;
+    float forceOnCart2 = (inputType == RIGHT2 && !(cartPosition.x >= conf::railBound.y))? cartForce[1]: (inputType == LEFT2 && !(cartPosition.x <= conf::railBound.x))? -cartForce[1]: 0;
+    float forceOnCart = forceOnCart1 + forceOnCart2;
     float forceOnPendulum = (inputType == UP)? -pendulumForce: (inputType == DOWN)? pendulumForce: 0;
-    slidingFriction = -((cartLinearVelocity > 0) - (cartLinearVelocity < 0)) * slidingFriction;
     angularFriction = -((pendulumAngularVelocity > 0) - (pendulumAngularVelocity < 0)) * angularFriction;
 
     float totalForceOnCart = forceOnCart + slidingFriction;
