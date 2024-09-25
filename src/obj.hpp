@@ -1,24 +1,17 @@
 #pragma once
+#define _USE_MATH_DEFINES
+#undef __STRICT_ANSI__
 #include <math.h>
 #include <SFML/Graphics.hpp>
 #include <tuple>
-#include <stdio.h>
-#include <iostream>
 #include <fstream>
-#define _USE_MATH_DEFINES
-#undef __STRICT_ANSI__
 #include <cmath>
-#include <algorithm>
 #include <numeric>
 #include <chrono>
 #include <iomanip>
-#include <sstream>
 #include <eigen3/Eigen/Dense>
 #include "config.hpp"
 
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
 
 #ifndef Shapes_HPP
 #define Shapes_HPP

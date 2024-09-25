@@ -418,10 +418,6 @@ class Sequential(object):
         loss = - cp.mean(np.sum(y_truth * np.log(pred + 1e-5) + (1 - y_truth) * np.log(1 - pred + 1e-5), axis = 1))
         dy = pred - y_truth
         return loss, dy
-    
-    @staticmethod
-    def qloss(td, qvals):
-        ...
 
     def fit(self, x, y, epochs: int = 1, batch_size: int = 1, validation_split: float = 0, shuffle: bool = True):
 

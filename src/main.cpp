@@ -99,11 +99,8 @@ signed main() {
 
         // Unlock the file
         flock(fd, LOCK_UN);
-
-        std::cerr << neuralInput << std::endl;
-
         std::tie(cartPosition, cartLinearVelocity, pendulumAngularVelocity, pendulumAttitude) = pendulum.stateUpdate(
-            cartForce, pendulumForce, conf::timeStep, neuralInput, conf::railBound, 12.5, 0.01);
+            cartForce, pendulumForce, conf::timeStep, inputType, conf::railBound, 12.5, 0.01);
 
         state << cartPosition.x, cartLinearVelocity, pendulumAngularVelocity, pendulumAttitude;
         std::cout << state.format(Eigen::IOFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", ", ", "", "", "")) << std::endl;

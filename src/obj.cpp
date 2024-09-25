@@ -129,11 +129,12 @@ std::tuple<sf::Vector2f, float, float, float> Pendulum::stateUpdate(std::vector<
     float forceOnCart2 = (inputType == RIGHT2 && !(cartPosition.x >= conf::railBound.y))? cartForce[1]: (inputType == LEFT2 && !(cartPosition.x <= conf::railBound.x))? -cartForce[1]: 0;
     float forceOnCart = forceOnCart1 + forceOnCart2;
     float forceOnPendulum = (inputType == UP)? -pendulumForce: (inputType == DOWN)? pendulumForce: 0;
-    angularFriction = -((pendulumAngularVelocity > 0) - (pendulumAngularVelocity < 0)) * angularFriction;
-
+    slidingFriction = -((cartLinearVelocity > 0.5) - (cartLinearVelocity < -0.5)) * slidingFriction;
+    angularFriction = -((pendulumAngularVelocity > 0.01) - (pendulumAngularVelocity < 0.01)) * angularFriction;
     float totalForceOnCart = forceOnCart + slidingFriction;
     float totalForceOnPendulum = angularFriction + forceOnPendulum;
 
+    std::cerr << forceOnCart << std::endl;
 
     Eigen::Vector4f x1 = {cartPosition.x, cartLinearVelocity, pendulumAttitude, pendulumAngularVelocity};
 

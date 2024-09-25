@@ -64,6 +64,17 @@ class Communicator():
         return output, error
 
 
+def calculateReward(degree, error):
+    if 0 <= degree <= error:
+        reward = 1 - np.sqrt(((0 - degree) / error) ** 2)
+    elif 360 >= degree >= 360 - error:
+        reward = 1 - np.sqrt(((360 - degree) / error) ** 2)
+    else:
+        reward = 0
+    
+    return reward 
+
+
 if __name__ == "__main__":
 
     build_dir = "build"
@@ -83,18 +94,44 @@ if __name__ == "__main__":
     qModel.add(Dense(24, activation = 'leaky_relu', input_shape = (4, )))
     qModel.add(Dense(24, activation = 'leaky_relu'))
     qModel.add(Dense(5, activation = 'linear'))
+    qModel.compile('mse', Adam(learning_rate = 0.005))
     tdModel = copy.deepcopy(qModel) 
+
+
     actionMap = np.array([3, 5, 0, 6, 4])
-    
     action = 0
+    epsilon = .01
+    tdStep = 4
+    batchSize = 512
+
+    updateIteration = 1000
+    bufferSize = 50000
+    replayBuffer = np.empty((bufferSize, 5), dtype = object)
+    bufferIndex = 0
+    # Store [state, action, reward, nextState, nextAction, doneFlag]
     while listener.process.poll() is None:
         output, err = listener.readAndWrite(str(action))
-        
-        state = np.array([[0, 0, 0, 0]])
+            
         try:
             state = listener.parse_matrix(output)
-        except: ...
+        except: state = None
 
-        qVal = qModel.predict(state)
-        print(qVal, end = '               \r', flush = True)
-        action = actionMap[np.argmax(qVal)]
+        if state is not None:
+            qVal = qModel.predict(state)
+
+            # Epsilon policy
+            if np.random.choice([0, 1], p = [1 - epsilon, epsilon]):
+                actionIdx = np.random.randint(0, 5)
+            else:
+                actionIdx = np.argmax(qVal)
+            action = actionMap[actionIdx]
+            reward = calculateReward(state[0, -1], 90)
+
+            # Replay buffer, moving border in circular manner
+            if (replayBuffer.shape[0] - tdStep) >=0:
+                idx_to_update = (bufferIndex - tdStep) % bufferSize
+                replayBuffer[idx_to_update, 3] = state[0]
+                replayBuffer[idx_to_update, 4] = actionIdx
+
+            replayBuffer[bufferIndex % bufferSize] = [state[0], actionIdx, reward, None, None]
+            bufferIndex += 1
