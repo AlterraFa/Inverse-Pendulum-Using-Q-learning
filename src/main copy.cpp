@@ -5,6 +5,21 @@
 #include <sys/file.h>
 #include <unistd.h>
 #include <string>
+#include <mutex>
+#include <fcntl.h>
+
+void readInput(std::string &message, bool &updated, std::mutex &mutex) {
+    std::string input;
+    while (true) {
+        std::getline(std::cin, input);
+        if (input == "exit") {
+            break;
+        }
+        std::lock_guard<std::mutex> lock(mutex); // Ensure safe update
+        message = input;
+        updated = true;
+    }
+}
 
 signed main() {
     // For aesthetics only
@@ -51,35 +66,48 @@ signed main() {
 
     Eigen::VectorXd state(5);
 
+    // Reading input from a medium
+    std::ifstream file("pysrc/medium");
+
+    if (!file.is_open()) {
+        std::cerr << "Error: Cannot open file" << std::endl;
+        return -1;
+    }
 
     float neuralInput = 0.0f;
+    std::string test;
+
+    // File descriptor for the lock
+    int fd = open("pysrc/medium", O_RDONLY);
+    if (fd == -1) {
+        std::cerr << "Error: Cannot open file descriptor" << std::endl;
+        return -1;
+    }
 
     while (inputType != EXIT) {
         processEvents(window, inputType);
 
-        std::string input;
-        if (!std::getline(std::cin, input)){
-            std::cerr << "Cannot read input" << "\n";
-            break;
-        }
-        try {
-            neuralInput = std::stof(input);
-        } catch (const std::invalid_argument& e){
-            std::cerr << "Invalid input" << std::endl;
-            continue;
-        } catch (const std::out_of_range& e){
-            std::cerr << "Input out of range" << std::endl;
-            continue;
+        // Lock the file for reading
+        flock(fd, LOCK_SH);
+        file.clear();
+        file.seekg(0, std::ios::beg);
+        while (std::getline(file, test)) {
+            try {
+                neuralInput = std::stof(test);
+            } catch (const std::exception &e) {
+                std::cerr << "Error: " << e.what() << std::endl;
+                neuralInput = 0.0f; // Reset to a safe default value
+            }
         }
 
-
+        // Unlock the file
+        flock(fd, LOCK_UN);
         std::tie(cartPosition, cartLinearVelocity, pendulumAngularVelocity, pendulumAttitude) = pendulum.stateUpdate(
             cartForce, pendulumForce, conf::timeStep, neuralInput, conf::railBound, 12.5, 0.01);
 
 
         state << cartPosition.x, cartLinearVelocity, pendulumAngularVelocity, pendulumAttitude, endFlag;
         std::cout << state.format(Eigen::IOFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", ", ", "", "", "")) << std::endl;
-        std::cout.flush();
 
         float duration = cartGrapher.update(cartLinearVelocity, 2);
         pendulumGrapher.update(pendulumAngularVelocity * 180 / M_PI, 2);
@@ -99,6 +127,9 @@ signed main() {
         window->draw(pendulumGrapher);
         window->display();
     }
+
+    // Close the file descriptor
+    close(fd);
 
     return 0;
 }

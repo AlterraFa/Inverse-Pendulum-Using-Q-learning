@@ -4,9 +4,6 @@ out
 .idea
 .vs
 .vscode
+pysrc/__pycache__/
 dist
-PendulumSimulation.egg-info
-bindings.cpp
 test*
-setup.py
-output

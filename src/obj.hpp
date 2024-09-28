@@ -62,7 +62,7 @@ class Pendulum : public sf::Drawable{
         Eigen::Vector4f funct(Eigen::Vector4f x, float force, float forceS);
         virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
     public:
-        Pendulum(float cartMass, float pendulumMass, float armLength, sf::Vector2f cartPosition, float pendulumAttitude = M_PI);
+        Pendulum(float cartMass, float pendulumMass, float armLength, sf::Vector2f cartPosition, float pendulumAttitude = M_PI / 3);
         void dimension(sf::Vector2f cartDimension = sf::Vector2f(150, 20), float pendulumRadius = 20, float pivotRadius = 20, float rodThickness = 6);
         std::tuple<sf::Vector2f, float, float, float> stateUpdate(std::vector<float> cartForce, float pendulumForce, float timeStep, int inputType, 
                                                                   sf::Vector2f railBound = static_cast<sf::Vector2f>(conf::createWindow(conf::getSettings()) -> getSize()),
@@ -113,11 +113,11 @@ class Graphing : public sf::Drawable {
         void initHistory(size_t histSize);
         void smoothGraph(std::vector<float>& data, size_t windowSize);
         void addVelocity(int newVelocity, int windowSize, float scaleFactor);
-        void createHorizontalBars();void createVerticalBars();
+        void createHorizontalBars();float createVerticalBars();
         void draw(sf::RenderTarget &target, sf::RenderStates states) const override;
     public:
         Graphing(size_t histSize, const sf::Font& f, std::vector<sf::Vector2f> graphBound, float scale, size_t maxVerticalLine = 9, float barSpace = 40.f, float textSize = 12.0f);
-        void update(int newVelocity, int windowSize);
+        float update(int newVelocity, int windowSize);
 };
 
 

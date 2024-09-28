@@ -1,1 +1,1 @@
-# Inverse-Pendulum-Using-NEAT
+# Inverse-Pendulum-Using-Q_learning

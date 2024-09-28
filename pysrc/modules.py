@@ -1,5 +1,4 @@
 import os
-import numpy as cp
 import numpy as np
 from numpy import ndarray
 import pickle
@@ -14,7 +13,7 @@ class InputError(Exception):
 
 
 class InvalidActivationFunction(Exception):...
-cp.random.seed(0)
+np.random.seed(0)
 
 # REGULARIZER
 class L1(object):
@@ -22,7 +21,7 @@ class L1(object):
         self.L1 = L1
     
     def __reg__(self, weights: ndarray): 
-        return self.L1 * cp.where(weights > 0, 1, -1)
+        return self.L1 * np.where(weights > 0, 1, -1)
 
 class L2(object):
     def __init__(self, L2: float = .01) -> None:
@@ -37,7 +36,7 @@ class L1L2(object):
         self.L2 = L2
     
     def __reg__(self, weights: ndarray):
-        return self.L1 * cp.where(weights > 0, 1, -1) + self.L2 * weights * 2
+        return self.L1 * np.where(weights > 0, 1, -1) + self.L2 * weights * 2
 
 # ACTIVATION FUNCTION
 class Funct(object):
@@ -45,7 +44,7 @@ class Funct(object):
     @staticmethod
     def tanhs():
         def funct(z: ndarray) -> ndarray:
-            return cp.tanh(z)
+            return np.tanh(z)
 
         def derivative(z: ndarray) -> ndarray:
             return - funct(z) ** 2 + 1
@@ -55,7 +54,7 @@ class Funct(object):
     @staticmethod
     def sigmoids():
         def funct(z: ndarray) -> ndarray:
-            return 1 / (1 + cp.exp(-z))
+            return 1 / (1 + np.exp(-z))
 
         def derivative(z: ndarray) -> ndarray:
             sigma = funct(z)
@@ -66,62 +65,62 @@ class Funct(object):
     @staticmethod
     def sigmoidWithLosss():
         def funct(z: ndarray) -> ndarray:
-            return 1 / (1 + cp.exp(-z))
+            return 1 / (1 + np.exp(-z))
 
         def derivative(z: ndarray) -> ndarray:
-            return cp.ones_like(z)
+            return np.ones_like(z)
 
         return funct, derivative
 
     @staticmethod
     def softmaxs():
         def funct(z: ndarray) -> ndarray:
-            exp_z = cp.exp(z)
-            return exp_z / cp.sum(exp_z, axis = 0)
+            exp_z = np.exp(z)
+            return exp_z / np.sum(exp_z, axis = 0)
 
         def derivative(z: ndarray) -> ndarray:
-            return cp.ones_like(z)
+            return np.ones_like(z)
 
         return funct, derivative
     
     @staticmethod
     def swishs():
         def funct(z: ndarray) -> ndarray:
-            return z / (1 + cp.exp(-z))
+            return z / (1 + np.exp(-z))
 
         def derivative(z: ndarray) -> ndarray:
             fun = funct(z)
-            return fun * ((1 / z) + cp.exp(-z) / (1 + cp.exp(-z)))
+            return fun * ((1 / z) + np.exp(-z) / (1 + np.exp(-z)))
 
         return funct, derivative
 
     @staticmethod
     def leaky_relus():
         def funct(z: ndarray) -> ndarray:
-            return cp.where(z > 0, z, .01 * z)
+            return np.where(z > 0, z, .01 * z)
 
         def derivative(z: ndarray) -> ndarray:
-            return cp.where(z > 0, 1, .01)
+            return np.where(z > 0, 1, .01)
 
         return funct, derivative
 
     @staticmethod
     def relus():
         def funct(z: ndarray) -> ndarray:
-            return (z + cp.abs(z)) / 2
+            return (z + np.abs(z)) / 2
         
         def derivative(z: ndarray) -> ndarray:
-            return cp.where(z > 0, 1, 0)
+            return np.where(z > 0, 1, 0)
         
         return funct, derivative
     
     @staticmethod
     def softpluss():
         def funct(z: ndarray) -> ndarray:
-            return cp.log(1 + cp.exp(z))
+            return np.log(1 + np.exp(z))
         
         def derivative(z: ndarray) -> ndarray:
-            exponent = cp.exp(z)
+            exponent = np.exp(z)
             return exponent / (1 + exponent)
         
         return funct, derivative
@@ -129,10 +128,10 @@ class Funct(object):
     @staticmethod
     def elus():
         def funct(z: ndarray) -> ndarray:
-            return cp.where(z > 0, z, cp.exp(z) - 1)
+            return np.where(z > 0, z, np.exp(z) - 1)
 
         def derivative(z: ndarray) -> ndarray:
-            return cp.where(z > 0, 1, cp.exp(z))
+            return np.where(z > 0, 1, np.exp(z))
         
         return funct, derivative
 
@@ -142,7 +141,7 @@ class Funct(object):
             return z
 
         def derivative(z: ndarray) -> ndarray:
-            return cp.ones_like(z)
+            return np.ones_like(z)
 
         return funct, derivative
         
@@ -178,12 +177,12 @@ class Adam(object):
 
     def __build__(self, weights, russian_bias):
         for w, b in zip(weights, russian_bias):
-            if type(w) == int: w = cp.array(w)
-            if type(b) == int: b = cp.array(b)
-            self.mw += [cp.zeros_like(w)]
-            self.vw += [cp.zeros_like(w)]
-            self.mb += [cp.zeros_like(b)]
-            self.vb += [cp.zeros_like(b)]
+            if type(w) == int: w = np.array(w)
+            if type(b) == int: b = np.array(b)
+            self.mw += [np.zeros_like(w)]
+            self.vw += [np.zeros_like(w)]
+            self.mb += [np.zeros_like(b)]
+            self.vb += [np.zeros_like(b)]
 
     def __update__(self, weights, russian_biases, nabla_ws, nabla_bs):
         beta1 = self.beta1; beta2 = self.beta2
@@ -194,13 +193,13 @@ class Adam(object):
                 self.vw[index] = beta2 * self.vw[index] + (1 - beta2) * (nabla_ws[index] ** 2)
                 mw_hat = self.mw[index] / (1 - (beta1 ** self.t))
                 vw_hat = self.vw[index] / (1 - (beta2 ** self.t))
-                weights[index] -= self.lr * mw_hat / (cp.sqrt(vw_hat) + epsilon)
+                weights[index] -= self.lr * mw_hat / (np.sqrt(vw_hat) + epsilon)
 
                 self.mb[index] = beta1 * self.mb[index] + (1 - beta1) * nabla_bs[index]
                 self.vb[index] = beta2 * self.vb[index] + (1 - beta2) * (nabla_bs[index] ** 2)
                 mb_hat = self.mb[index] / (1 - (beta1 ** self.t))
                 vb_hat = self.vb[index] / (1 - (beta2 ** self.t))
-                russian_biases[index] -= self.lr * mb_hat / (cp.sqrt(vb_hat) + epsilon)
+                russian_biases[index] -= self.lr * mb_hat / (np.sqrt(vb_hat) + epsilon)
         self.t += 1
         return weights, russian_biases
     
@@ -235,16 +234,16 @@ class RMSProp(object):
 
     def __build__(self, weights, russian_biases):
         for w, b in zip(weights, russian_biases):
-            self.Sdw += [cp.zeros_like(w, dtype=cp.float64)]
-            self.Sdb += [cp.zeros_like(b, dtype=cp.float64)]
+            self.Sdw += [np.zeros_like(w, dtype=np.float64)]
+            self.Sdb += [np.zeros_like(b, dtype=np.float64)]
 
     def __update__(self, weights, russian_biases, nabla_ws, nabla_bs):
         for index in range(len(weights)):
             if not isinstance(weights[index], int):
                 self.Sdw[index] += self.rho * self.Sdw[index] + (1 - self.rho) * weights[index] ** 2
                 self.Sdb[index] += self.rho * self.Sdb[index] + (1 - self.rho) * russian_biases[index] ** 2
-                weights[index] -= self.lr * (nabla_ws[index] / (cp.sqrt(self.Sdw[index] + self.epsilon)))
-                russian_biases[index] -= self.lr * (nabla_bs[index] / (cp.sqrt(self.Sdb[index] + self.epsilon)))
+                weights[index] -= self.lr * (nabla_ws[index] / (np.sqrt(self.Sdw[index] + self.epsilon)))
+                russian_biases[index] -= self.lr * (nabla_bs[index] / (np.sqrt(self.Sdb[index] + self.epsilon)))
 
         return weights, russian_biases
 
@@ -266,25 +265,25 @@ class Dense(Funct):
             raise InputError("Middle layer should not have input shape")
 
         if self.optional and 'input_shape' in self.optional.keys():
-            weight = cp.random.randn(
+            weight = np.random.randn(
                 self.units,
-                int(cp.prod(cp.array(self.optional["input_shape"])))
+                int(np.prod(np.array(self.optional["input_shape"])))
             )
-            weight *= cp.sqrt(2 / (2 * cp.prod(cp.array(self.optional["input_shape"])) + 1))
+            weight *= np.sqrt(2 / (2 * np.prod(np.array(self.optional["input_shape"])) + 1))
 
         else:
-            weight = cp.random.randn(
+            weight = np.random.randn(
                 self.units,
                 int(input_size)
             )
-            weight *= cp.sqrt(2 / (2 * input_size + 1))
+            weight *= np.sqrt(2 / (2 * input_size + 1))
 
-        russian_bias_weight = cp.atleast_2d(cp.random.randn(self.units) * cp.sqrt(1 / self.units))
+        russian_bias_weight = np.atleast_2d(np.random.randn(self.units) * np.sqrt(1 / self.units))
         return weight, russian_bias_weight, self.units
 
     def __forward__(self, input, weight, russian_bias):
-        expanded_weights = cp.hstack([weight, cp.atleast_2d(russian_bias).T])
-        expanded_inputs = cp.hstack([input, cp.atleast_2d(cp.ones(input.shape[0])).T]).T
+        expanded_weights = np.hstack([weight, np.atleast_2d(russian_bias).T])
+        expanded_inputs = np.hstack([input, np.atleast_2d(np.ones(input.shape[0])).T]).T
 
         z = expanded_weights @ expanded_inputs
 
@@ -298,7 +297,7 @@ class Dense(Funct):
     def __backward__(self, dy, dot_prod, batch_input, weight):
         nabla_z = dy * getattr(self, self.activation)[1](dot_prod)
         nabla_w = ((nabla_z @ batch_input) - self.kernel_regularizer.__reg__(weight))
-        nabla_b = cp.sum(nabla_z, axis=1, keepdims=True).T
+        nabla_b = np.sum(nabla_z, axis=1, keepdims=True).T
         dy = weight.T @ nabla_z
         return nabla_w, nabla_b, dy
 
@@ -307,17 +306,17 @@ class Flatten(Funct):
     def __init__(self, **optional: tuple[Any, ...]) -> None:
         self.optional = optional
         self.activation = "None"
-        self.units = cp.prod(cp.asarray(self.optional["input_shape"]))
+        self.units = np.prod(np.asarray(self.optional["input_shape"]))
 
     def __build__(self, input_size):
         if self.optional:
             self.oldim = self.optional["input_shape"]
         else:
             self.oldim = input_size
-        return 0, 0, cp.prod(cp.asarray(self.oldim))
+        return 0, 0, np.prod(np.asarray(self.oldim))
 
     def __forward__(self, input, weight, russian_bias):
-        return input.reshape(-1, int(cp.prod(cp.asarray(self.oldim)))), 0
+        return input.reshape(-1, int(np.prod(np.asarray(self.oldim)))), 0
 
     def __backward__(self, dy, dot_prod, batch_input, weight):
         return 0, 0, dy.reshape(-1, *self.oldim)
@@ -355,7 +354,7 @@ class Sequential(object):
         self.__bias_weights += [bias]
 
     def compile(self,
-                loss: Literal['mse', 'celoss', 'bceloss'] = 'mse',
+                loss: Literal['mse', 'celoss', 'bceloss', 'tdloss'] = 'mse',
                 optimizer: Union[Adam, RMSProp, SGD] = Adam()):
         
         self.loss = loss
@@ -403,20 +402,35 @@ class Sequential(object):
 
     @staticmethod
     def mse(pred, y_truth):
-        loss = cp.mean((1 / 2) * cp.sum((pred - y_truth) ** 2, axis=1))
+        loss = np.mean((1 / 2) * np.sum((pred - y_truth) ** 2, axis=1))
         dy = (pred - y_truth)
         return loss, dy
         
     @staticmethod
     def celoss(pred, y_truth):
-        loss = - cp.mean(np.sum(y_truth * np.log(pred + 1e-5), axis = 1))
+        loss = - np.mean(np.sum(y_truth * np.log(pred + 1e-5), axis = 1))
         dy = pred - y_truth
         return loss, dy
     
     @staticmethod
     def bceloss(pred, y_truth):
-        loss = - cp.mean(np.sum(y_truth * np.log(pred + 1e-5) + (1 - y_truth) * np.log(1 - pred + 1e-5), axis = 1))
+        loss = - np.mean(np.sum(y_truth * np.log(pred + 1e-5) + (1 - y_truth) * np.log(1 - pred + 1e-5), axis = 1))
         dy = pred - y_truth
+        return loss, dy
+
+    @staticmethod
+    def tdloss(pred, y_truth):
+        tdEstimate = y_truth[:, 0]
+        actionIdx = y_truth[:, 1].astype(int)
+        batchSize = actionIdx.shape[0]
+
+        qSliced = pred[np.arange(batchSize), actionIdx]
+
+        tdDifference = tdEstimate - qSliced
+
+        loss = np.mean(tdDifference ** 2)
+        dy = np.zeros_like(pred)
+        dy[np.arange(batchSize), actionIdx] = 2 * tdDifference / batchSize
         return loss, dy
 
     def fit(self, x, y, epochs: int = 1, batch_size: int = 1, validation_split: float = 0, shuffle: bool = True):
@@ -425,15 +439,15 @@ class Sequential(object):
             self.compile()
 
         
-        x = cp.asarray(x)
-        y = cp.asarray(y)
+        x = np.asarray(x)
+        y = np.asarray(y)
         overall_size = len(x)
         placeholder = batch_size
 
         train_size = int(overall_size - overall_size * validation_split)
         val_size = overall_size - train_size
 
-        permute = cp.random.permutation(overall_size)
+        permute = np.random.permutation(overall_size)
         x = x[permute]
         y = y[permute]
 
@@ -450,23 +464,23 @@ class Sequential(object):
             iteration = 1
 
             if shuffle:
-                permute = cp.random.permutation(train_size)
+                permute = np.random.permutation(train_size)
                 x_train = x_train[permute]
                 y_train = y_train[permute]
 
             batch_size = placeholder
-            print(f"Epoch {epoch + 1:>{len(str(epochs))}}/{epochs}")
-            pbar = tqdm(range(0, train_size, batch_size), dynamic_ncols = True, leave = True, ascii=".>=")
-            for index in pbar:
+            # print(f"Epoch {epoch + 1:>{len(str(epochs))}}/{epochs}")
+            # pbar = tqdm(range(0, train_size, batch_size), dynamic_ncols = True, leave = True, ascii=".>=")
+            for index in range(0, train_size, batch_size):
                 if batch_size > train_size - index:
                     batch_size = train_size - index
 
                 # Forward Feed
                 pred, batch_inputs, dot_prods = self.ForwardProp(x_train[index: index + batch_size])
-                test_number = np.argmax(y_train[index: index + batch_size], axis = 1)
+                # test_number = np.argmax(y_train[index: index + batch_size], axis = 1)
 
                 # Array of y truth
-                check += cp.sum(cp.argmax(pred, axis=1) == test_number)
+                # check += np.sum(np.argmax(pred, axis=1) == test_number)
 
                 # Derivative and loss
                 loss, dy = getattr(Sequential, self.loss)(pred, y_train[index: index + batch_size])
@@ -482,23 +496,24 @@ class Sequential(object):
 
                 cost += loss
                 total_pass += batch_size
-                pbar.set_postfix_str(f"Loss: {cost / iteration:.4f} - Accuracy: {check / total_pass:.4f}")
+                print(f"{cost / iteration:.4f}", end = '                          \r', flush = True)
+                # pbar.set_postfix_str(f"Loss: {cost / iteration:.4f} - Accuracy: {check / total_pass:.4f}")
                 iteration += 1
 
             batch_size = placeholder
-            valPbar = tqdm(range(0, val_size, batch_size), leave = True, dynamic_ncols = True, ascii = ".>=")
+            # valPbar = tqdm(range(0, val_size, batch_size), leave = True, dynamic_ncols = True, ascii = ".>=")
             valPass = 0
             val_score = 0
-            for index in valPbar:
+            for index in range(0, val_size, batch_size):
                 if batch_size > val_size - index:
                     batch_size = val_size - index
 
                 valPass += batch_size
                 pred = self.predict(x_val[index: index + batch_size], batch_size = batch_size)
-                val_score += cp.sum(cp.argmax(pred, axis = 1) == cp.argmax(y_val[index: index + batch_size], axis = 1))
+                val_score += np.sum(np.argmax(pred, axis = 1) == np.argmax(y_val[index: index + batch_size], axis = 1))
 
-                valPbar.set_postfix_str(f"Val Accuracy {val_score / valPass:.4f}")
-            print('')
+                # valPbar.set_postfix_str(f"Val Accuracy {val_score / valPass:.4f}")
+            # print('')
                 
 
     def save(self, filePath: str, overide: bool = False):
@@ -507,8 +522,8 @@ class Sequential(object):
             pickle.dump(self.layers, file)
 
         os.makedirs(filePath + r"/saved_model", exist_ok=overide)
-        cp.savez(filePath + r'/saved_model/weights.npz', *self.weights)
-        cp.savez(filePath + r'/saved_model/russian_biases.npz', *self.__bias_weights)
+        np.savez(filePath + r'/saved_model/weights.npz', *self.weights)
+        np.savez(filePath + r'/saved_model/russian_biases.npz', *self.__bias_weights)
         print(f"Model has been saved into: {filePath}")
 
     def load_model(self, filePath):
@@ -518,14 +533,14 @@ class Sequential(object):
         for key in keys:
             weight = np.load(filePath + r"/saved_model/weights.npz")[key]
             bias = np.load(filePath + r"/saved_model/russian_biases.npz")[key]
-            self.weights += [cp.float64(weight)]
-            self.__bias_weights += [cp.float64(bias)]
+            self.weights += [np.float64(weight)]
+            self.__bias_weights += [np.float64(bias)]
             
         with open(filePath + r"/fingerprint.pkl", 'rb') as f:
             self.layers = list(pickle.load(f))
 
     def predict(self, x, batch_size: int = 1):
-        res = cp.array([])
+        res = np.array([])
         for index in range(0, len(x), batch_size):
             if batch_size > len(x) - index:
                 batch_size = len(x) - index
@@ -534,5 +549,5 @@ class Sequential(object):
             if len(res) == 0:
                 res = pred
             else:
-                res = cp.concatenate([res, pred], axis=0)
+                res = np.concatenate([res, pred], axis=0)
         return res

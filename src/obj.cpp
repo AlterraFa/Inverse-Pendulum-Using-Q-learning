@@ -1,4 +1,5 @@
 #include "obj.hpp"
+#include "config.hpp"
 #include <eigen3/Eigen/src/Core/Matrix.h>
 
 //------------------------------------------ Rectangle class --------------------------------------------------------//
@@ -125,16 +126,18 @@ std::tuple<sf::Vector2f, float, float, float> Pendulum::stateUpdate(std::vector<
                                                                     sf::Vector2f railBound,
                                                                     float slidingFriction, float angularFriction){
 
-    float forceOnCart1 = (inputType == RIGHT1 && !(cartPosition.x >= conf::railBound.y))? cartForce[0]: (inputType == LEFT1 && !(cartPosition.x <= conf::railBound.x))? -cartForce[0]: 0;
-    float forceOnCart2 = (inputType == RIGHT2 && !(cartPosition.x >= conf::railBound.y))? cartForce[1]: (inputType == LEFT2 && !(cartPosition.x <= conf::railBound.x))? -cartForce[1]: 0;
+    float forceOnCart1 = (inputType == RIGHT1)? cartForce[0]: (inputType == LEFT1)? -cartForce[0]: 0;
+    float forceOnCart2 = (inputType == RIGHT2)? cartForce[1]: (inputType == LEFT2)? -cartForce[1]: 0;
     float forceOnCart = forceOnCart1 + forceOnCart2;
-    float forceOnPendulum = (inputType == UP)? -pendulumForce: (inputType == DOWN)? pendulumForce: 0;
+    if ((cartPosition.x <= railBound.x + 0.1 && (inputType == LEFT1 || inputType == LEFT2)) || (cartPosition.x >= railBound.y - 0.1 && (inputType == RIGHT1 || inputType == RIGHT2))) forceOnCart = 0;
     slidingFriction = -((cartLinearVelocity > 0.5) - (cartLinearVelocity < -0.5)) * slidingFriction;
-    angularFriction = -((pendulumAngularVelocity > 0.01) - (pendulumAngularVelocity < 0.01)) * angularFriction;
     float totalForceOnCart = forceOnCart + slidingFriction;
+
+
+    float forceOnPendulum = (inputType == UP)? -pendulumForce: (inputType == DOWN)? pendulumForce: 0;
+    angularFriction = -((pendulumAngularVelocity > 0.01) - (pendulumAngularVelocity < 0.01)) * angularFriction;
     float totalForceOnPendulum = angularFriction + forceOnPendulum;
 
-    std::cerr << forceOnCart << std::endl;
 
     Eigen::Vector4f x1 = {cartPosition.x, cartLinearVelocity, pendulumAttitude, pendulumAngularVelocity};
 
@@ -376,15 +379,16 @@ Graphing::Graphing(size_t histSize, const sf::Font &f, std::vector<sf::Vector2f>
     timer.push_back(0.0f);
     initHistory(histSize);
 };
-void Graphing::update(int newVelocity, int windowSize) {
+float Graphing::update(int newVelocity, int windowSize) {
     addVelocity(newVelocity, windowSize, graphScale);
     createHorizontalBars();
-    createVerticalBars();
+    float duration = createVerticalBars();
 
     graph.clear();
     for (size_t i = 0; i < yHistory.size(); i++) {
         graph.append(sf::Vertex(sf::Vector2f(xHistory[i], yHistory[i]), sf::Color(219, 192, 118)));
     }
+    return duration;
 }
 void Graphing::draw(sf::RenderTarget &target, sf::RenderStates states) const {
     target.draw(graph, states);
@@ -398,7 +402,7 @@ void Graphing::draw(sf::RenderTarget &target, sf::RenderStates states) const {
         target.draw(time, states);
     }
 }
-void Graphing::createVerticalBars() {
+float Graphing::createVerticalBars() {
     timerString.clear();
     verticalBar.clear();
 
@@ -452,13 +456,15 @@ void Graphing::createVerticalBars() {
         iter++;
         positions.push_back(position);
     }
+    auto endTime = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
     if (lineCount == maxLine && positions[1] <= graphBound[0].x){
-        auto endTime = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
         timer.erase(timer.begin());
         timer.push_back(std::round(duration.count() / 100.f) / 10);
     }
+    return duration.count();
 }
+
 void Graphing::createHorizontalBars() {
     texts.clear();
     horizontalBar.clear();
